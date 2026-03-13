@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KOTI TENT HOUSE</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+</head>
+
+<body class="bg-gray-100">
+
+<!-- NAVBAR -->
+<div class="bg-blue-600 text-white p-4 flex justify-between items-center">
+
+<button onclick="toggleSidebar()" class="text-2xl">
+☰
+</button>
+
+<h1 class="font-bold text-lg">
+NANDA TENT HOUSE
+</h1>
+
+<span>
+👤
+</span>
+
+<button onclick="toggleDarkMode()" class="text-2xl ml-4">
+🌙
+</button>
+
+</div>
+
+
+<!-- SIDEBAR -->
+<div id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-white shadow-lg transform -translate-x-full transition-transform duration-300">
+
+<div class="p-4 bg-green-600 text-white font-bold">
+Menu
+</div>
+
+<ul class="p-4 space-y-4">
+
+<li class="flex items-center gap-3">
+🏠 Dashboard
+</li>
+
+<li class="flex items-center gap-3">
+📦 Tent Items
+</li>
+
+<li class="flex items-center gap-3">
+📋 Orders
+</li>
+
+<li class="flex items-center gap-3">
+💰 Billing
+</li>
+
+<li class="flex items-center gap-3">
+👥 Customers
+</li>
+
+<li class="flex items-center gap-3">
+⚙ Settings
+</li>
+
+</ul>
+
+</div>
+
+
+<!-- MAIN CONTENT -->
+<div class="p-4">
+
+<!-- DASHBOARD CARDS -->
+
+<div class="grid grid-cols-2 gap-4">
+
+<div class="bg-white p-4 rounded-lg shadow text-center">
+<p class="text-gray-500 text-sm">Total Items</p>
+<h2 class="text-2xl font-bold">120</h2>
+</div>
+
+<div class="bg-white p-4 rounded-lg shadow text-center">
+<p class="text-gray-500 text-sm">Today's Orders</p>
+<h2 class="text-2xl font-bold">8</h2>
+</div>
+
+<div class="bg-white p-4 rounded-lg shadow text-center">
+<p class="text-gray-500 text-sm">Customers</p>
+<h2 class="text-2xl font-bold">54</h2>
+</div>
+
+<div class="bg-white p-4 rounded-lg shadow text-center">
+<p class="text-gray-500 text-sm">Revenue</p>
+<h2 class="text-2xl font-bold">₹12,000</h2>
+</div>
+
+</div>
+
+
+<!-- RECENT ORDERS -->
+
+<div class="mt-6 bg-white rounded-lg shadow p-4">
+
+<h2 class="font-bold mb-3">
+Recent Orders
+</h2>
+
+<div class="space-y-3">
+
+<div class="flex justify-between border-b pb-2">
+<span>Wedding Event</span>
+<span class="text-green-600">₹3500</span>
+</div>
+
+<div class="flex justify-between border-b pb-2">
+<span>Birthday Party</span>
+<span class="text-green-600">₹1500</span>
+</div>
+
+<div class="flex justify-between">
+<span>Stage Decoration</span>
+<span class="text-green-600">₹5000</span>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- BOTTOM NAVIGATION -->
+
+<div class="fixed bottom-0 left-0 w-full bg-white shadow-lg border-t">
+
+<div class="flex justify-around p-3 text-sm">
+
+<div class="text-center">
+🏠
+<p>Home</p>
+</div>
+
+<div class="text-center">
+📦
+<p>Items</p>
+</div>
+
+<div class="text-center">
+📋
+<p>Orders</p>
+</div>
+
+<div class="text-center">
+💰
+<p>Billing</p>
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+function toggleSidebar(){
+const sidebar = document.getElementById("sidebar");
+
+if(sidebar.classList.contains("-translate-x-full")){
+sidebar.classList.remove("-translate-x-full");
+}else{
+sidebar.classList.add("-translate-x-full");
+}
+}
+
+function toggleDarkMode(){
+const body = document.body;
+const isDark = body.classList.contains("dark");
+
+if(isDark){
+body.classList.remove("dark");
+body.classList.add("bg-gray-100");
+}else{
+body.classList.add("dark");
+body.classList.remove("bg-gray-100");
+}
+}
+
+</script>
+
+</body>
+</html>
