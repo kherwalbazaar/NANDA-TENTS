@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, User, Home, Package, ClipboardList, DollarSign, Plus, ChevronRight } from 'lucide-react';
 
 export default function NandaTentHouse() {
@@ -12,6 +12,7 @@ export default function NandaTentHouse() {
   const [newItemCategory, setNewItemCategory] = useState('Tents');
   const [newItemPrice, setNewItemPrice] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [dummyItems, setDummyItems] = useState([
     {
       id: '1',
@@ -82,6 +83,35 @@ export default function NandaTentHouse() {
     { name: 'Corporate Event', price: '₹2800' },
     { name: 'Engagement Party', price: '₹4200' },
   ]);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+      } else {
+        console.log('User dismissed the install prompt');
+      }
+      setDeferredPrompt(null);
+    } else {
+      // Fallback for browsers that don't support beforeinstallprompt
+      alert('To install this app, please use your browser\'s "Add to Home Screen" feature.');
+    }
+  };
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -229,6 +259,16 @@ export default function NandaTentHouse() {
           >
             <Menu size={20} />
             <span className="font-medium">Settings</span>
+          </button>
+          <button
+            onClick={() => {
+              closeSidebar();
+              handleInstallClick();
+            }}
+            className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-50 text-gray-700 hover:text-green-600 transition w-full text-left"
+          >
+            <Package size={20} />
+            <span className="font-medium">Download APK</span>
           </button>
         </nav>
       </aside>
