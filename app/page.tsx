@@ -1,28 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, User, Home, Package, ClipboardList, DollarSign } from 'lucide-react';
+import { Menu, User, Home, Package, ClipboardList, DollarSign, Plus, ChevronRight } from 'lucide-react';
 
 export default function NandaTentHouse() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
   const [itemsModalOpen, setItemsModalOpen] = useState(false);
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const closeSidebar = () => {
-    setSidebarOpen(false);
-  };
-
-  const closeItemsModal = () => {
-    setItemsModalOpen(false);
-    setActiveTab('home');
-  };
-
-  // Dummy items data
-  const dummyItems = [
+  const [itemModalOpen, setItemModalOpen] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemCategory, setNewItemCategory] = useState('Tents');
+  const [newItemPrice, setNewItemPrice] = useState('');
+  const [newItemQuantity, setNewItemQuantity] = useState('');
+  const [dummyItems, setDummyItems] = useState([
     {
       id: '1',
       name: 'Wedding Tent (20x30)',
@@ -83,7 +73,79 @@ export default function NandaTentHouse() {
       description: 'Professional audio setup',
       status: 'Low Stock'
     }
-  ];
+  ]);
+
+  const [dummyOrders, setDummyOrders] = useState([
+    { name: 'Wedding Event', price: '₹3500' },
+    { name: 'Birthday Party', price: '₹1500' },
+    { name: 'Stage Decoration', price: '₹5000' },
+    { name: 'Corporate Event', price: '₹2800' },
+    { name: 'Engagement Party', price: '₹4200' },
+  ]);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+  };
+
+  const closeItemsModal = () => {
+    setItemsModalOpen(false);
+    setActiveTab('home');
+  };
+
+  const addNewItem = () => {
+    const newItem = {
+      id: (dummyItems.length + 1).toString(),
+      name: 'New Item',
+      category: 'General',
+      available: 1,
+      total: 1,
+      price: '₹500/day',
+      description: 'Newly added item',
+      status: 'Available'
+    };
+    setDummyItems([...dummyItems, newItem]);
+  };
+
+  const addOrder = () => {
+    const newOrder = {
+      name: 'New Order',
+      price: '₹1000',
+    };
+    setDummyOrders([...dummyOrders, newOrder]);
+  };
+
+  const openItemModal = () => {
+    setItemModalOpen(true);
+  };
+
+  const closeItemModal = () => {
+    setItemModalOpen(false);
+    setNewItemName('');
+    setNewItemCategory('Tents');
+    setNewItemPrice('');
+    setNewItemQuantity('');
+  };
+
+  const submitNewItem = () => {
+    if (newItemName && newItemPrice && newItemQuantity) {
+      const newItem = {
+        id: (dummyItems.length + 1).toString(),
+        name: newItemName,
+        category: newItemCategory,
+        available: parseInt(newItemQuantity),
+        total: parseInt(newItemQuantity),
+        price: `₹${newItemPrice}/day`,
+        description: `${newItemName} - ${newItemCategory}`,
+        status: 'Available'
+      };
+      setDummyItems([...dummyItems, newItem]);
+      closeItemModal();
+    }
+  };
 
   const changeTab = (tab: string) => {
     setActiveTab(tab);
@@ -100,9 +162,14 @@ export default function NandaTentHouse() {
         >
           <Menu size={24} />
         </button>
-        <h1 className="text-lg font-bold text-center flex-1">NANDA TENT HOUSE</h1>
-        <button className="p-2 hover:bg-green-700 rounded" aria-label="Profile">
-          <User size={24} />
+        <h1 className="text-lg font-bold text-center flex-1">{activeTab === 'items' ? 'TENT ITEMS' : 'NANDA TENT HOUSE'}</h1>
+        <button
+          onClick={openItemModal}
+          className="p-2 hover:bg-green-700 rounded flex items-center space-x-1 bg-gray-50 text-green-600"
+          aria-label="Add Items"
+        >
+          <Plus size={20} />
+          <span className="text-sm font-medium">Add Items</span>
         </button>
       </nav>
 
@@ -214,33 +281,31 @@ export default function NandaTentHouse() {
 
       {/* Items Tab Content */}
       {activeTab === 'items' && (
-        <main className="flex-1 overflow-y-auto pt-16 px-2">
-          <div className="mt-4">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Tent Items</h2>
-            <div className="space-y-4">
-              {dummyItems.map((item) => (
-                <div key={item.id} className="bg-white rounded-lg shadow-sm p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      item.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
-                    }`}>
-                      {item.status}
-                    </span>
-                  </div>
-                  <p className="text-gray-600 text-sm mb-2">{item.description}</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-500 text-sm">{item.category}</span>
-                    <span className="font-semibold text-green-600">{item.price}</span>
-                  </div>
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="text-xs text-gray-500">Available: {item.available}/{item.total}</span>
-                    <button className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition-colors">
-                      Book
-                    </button>
-                  </div>
-                </div>
-              ))}
+        <main className="flex-1 overflow-y-auto pt-16 px-0 bg-green-100">
+          <div className="">
+            <div className="bg-white shadow-sm overflow-hidden">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="border-l border-r border-green-200 p-2 text-center font-bold text-white bg-pink-500">ଦ୍ରବ୍ୟର ନାମ</th>
+                    <th className="border-l border-r border-green-200 p-2 text-center font-bold text-white bg-pink-500">ଦୈନିକ ମୂଲ୍ୟ</th>
+                    <th className="border-l border-r border-green-200 p-2 text-center font-bold text-white bg-pink-500">ପରିମାଣ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dummyItems.map((item) => (
+                    <tr key={item.id}>
+                      <td className="border border-green-200 p-2 text-center font-semibold text-gray-900 text-sm">{item.name}</td>
+                      <td className="border border-green-200 p-2 text-center text-gray-600 text-sm">
+                        <span className="text-base font-bold">{item.price.replace('₹', '').replace('/day', '')}</span><span className="text-xs">/day</span>
+                      </td>
+                      <td className="border border-green-200 p-2 text-center text-green-600 font-semibold">
+                        <span className="text-lg font-bold">{item.available}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </main>
@@ -248,34 +313,21 @@ export default function NandaTentHouse() {
 
       {/* Orders Tab Content */}
       {activeTab === 'orders' && (
-        <main className="flex-1 overflow-y-auto pt-16 px-2">
-          <div className="mt-4">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Orders</h2>
-            <div className="space-y-4">
-              {[
-                { id: 'ORD001', name: 'Wedding Event', status: 'Completed', price: '₹3500' },
-                { id: 'ORD002', name: 'Birthday Party', status: 'Pending', price: '₹1500' },
-                { id: 'ORD003', name: 'Corporate Event', status: 'Confirmed', price: '₹2800' },
-                { id: 'ORD004', name: 'Engagement Party', status: 'Pending', price: '₹4200' },
-              ].map((order) => (
-                <div key={order.id} className="bg-white rounded-lg shadow-sm p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{order.name}</h3>
-                      <p className="text-gray-500 text-sm">{order.id}</p>
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      order.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                      order.status === 'Pending' ? 'bg-orange-100 text-orange-800' :
-                      'bg-blue-100 text-blue-800'
-                    }`}>
-                      {order.status}
-                    </span>
+        <main className="flex-1 overflow-y-auto pt-16 px-0 bg-green-100">
+          <div className="">
+            <div className="bg-white shadow-sm overflow-hidden">
+              {dummyOrders.map((order, index) => (
+                <div key={index} className={`flex justify-between items-center px-4 py-4 cursor-pointer hover:bg-green-50 transition ${
+                  index % 2 === 0 ? 'bg-white' : 'bg-green-50'
+                }`}>
+                  <div className="flex-1">
+                    <span className="text-gray-700 font-medium">{order.name}</span>
+                    <span className="text-gray-500 text-sm ml-2">- 13 Mar 2026</span>
+                    <span className="text-gray-600 ml-2">- {order.price}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 text-sm">Total Amount</span>
-                    <span className="font-semibold text-green-600">{order.price}</span>
-                  </div>
+                  <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ml-2">
+                    <ChevronRight size={16} className="text-gray-600" />
+                  </span>
                 </div>
               ))}
             </div>
@@ -322,6 +374,62 @@ export default function NandaTentHouse() {
             </div>
           </div>
         </main>
+      )}
+
+      {/* Item Add Modal */}
+      {itemModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-md">
+            <h2 className="text-lg font-bold text-gray-800 mb-4">ନୂଆ ଦ୍ରବ୍ୟ ଯୋଗ କରନ୍ତୁ</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ଦ୍ରବ୍ୟର ନାମ</label>
+                <input
+                  type="text"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="ଦ୍ରବ୍ୟର ନାମ ଲେଖନ୍ତୁ"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ଦୈନିକ ମୂଲ୍ୟ (₹)</label>
+                <input
+                  type="number"
+                  value={newItemPrice}
+                  onChange={(e) => setNewItemPrice(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="ମୂଲ୍ୟ ଲେଖନ୍ତୁ"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ପରିମାଣ</label>
+                <input
+                  type="number"
+                  value={newItemQuantity}
+                  onChange={(e) => setNewItemQuantity(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="ପରିମାଣ ଲେଖନ୍ତୁ"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={closeItemModal}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                ବାତିଲ୍
+              </button>
+              <button
+                onClick={submitNewItem}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                disabled={!newItemName || !newItemPrice || !newItemQuantity}
+              >
+                ଯୋଗ କରନ୍ତୁ
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Bottom Mobile Navigation */}
