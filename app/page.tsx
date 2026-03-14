@@ -219,6 +219,10 @@ export default function NandaTentHouse() {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      // Show install popup for Chrome browser
+      if (navigator.userAgent.includes('Chrome') && !navigator.userAgent.includes('Edg')) {
+        setShowInstallPopup(true);
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
