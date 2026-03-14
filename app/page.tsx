@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Menu, User, Home, Package, ClipboardList, DollarSign, Plus, ChevronRight, Phone } from 'lucide-react';
+import { Menu, User, Home, Package, ClipboardList, DollarSign, Plus, ChevronRight, Phone, Share2 } from 'lucide-react';
 
 interface OrderItem {
   name: string;
@@ -248,6 +248,14 @@ export default function NandaTentHouse() {
     }
   };
 
+  const handleShareWhatsApp = () => {
+    const appUrl = window.location.origin;
+    const message = `*NANDA TENT* 🏕️\n\nProfessional Tent Rental Services\n\n📱 Download our app: ${appUrl}\n\n📞 Call us for bookings\n🏆 Best quality tents at affordable prices\n🎯 Perfect for weddings, parties, and events\n\n#NandaTent #TentRental`;
+    
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
@@ -477,6 +485,20 @@ export default function NandaTentHouse() {
         } pt-16`}
       >
         <nav className="flex flex-col p-4 space-y-2">
+          <button
+            onClick={handleShareWhatsApp}
+            className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-green-50 rounded-lg transition-colors"
+          >
+            <Share2 className="w-5 h-5 text-green-600" />
+            <span className="font-medium">Share on WhatsApp</span>
+          </button>
+          <button
+            onClick={handleInstallClick}
+            className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-green-50 rounded-lg transition-colors"
+          >
+            <Download className="w-5 h-5 text-green-600" />
+            <span className="font-medium">Download APK</span>
+          </button>
           <button
             onClick={closeSidebar}
             className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-50 text-gray-700 hover:text-green-600 transition w-full text-left"
