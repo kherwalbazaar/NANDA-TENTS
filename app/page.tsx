@@ -202,6 +202,18 @@ export default function NandaTentHouse() {
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  // Add Order Modal States
+  const [addOrderModalOpen, setAddOrderModalOpen] = useState(false);
+  const [newOrderCustomer, setNewOrderCustomer] = useState('');
+  const [newOrderPhone, setNewOrderPhone] = useState('');
+  const [newOrderAddress, setNewOrderAddress] = useState('');
+  const [newOrderEmail, setNewOrderEmail] = useState('');
+  const [newOrderDate, setNewOrderDate] = useState('');
+  const [newOrderItems, setNewOrderItems] = useState<Array<{id: string, name: string, quantity: number, price: string}>>([]);
+  const [newOrderAdvance, setNewOrderAdvance] = useState('');
+  const [newOrderNotes, setNewOrderNotes] = useState('');
+  const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
+
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
@@ -307,12 +319,104 @@ export default function NandaTentHouse() {
     }
   };
 
+  const submitNewOrder = () => {
+    if (newOrderCustomer && newOrderPhone && newOrderDate && newOrderItems.length > 0) {
+      // Calculate total amount
+      const totalAmount = newOrderItems.reduce((total, item) => {
+        const price = parseInt(item.price.replace('₹', '').replace('/day', ''));
+        return total + (price * item.quantity);
+      }, 0);
+
+      const advanceAmount = parseInt(newOrderAdvance) || 0;
+      const balanceAmount = totalAmount - advanceAmount;
+
+      const newOrder: Order = {
+        id: dummyOrders.length + 1,
+        name: `Order for ${newOrderCustomer}`,
+        price: `₹${totalAmount}`,
+        date: newOrderDate,
+        customer: newOrderCustomer,
+        phone: newOrderPhone,
+        email: newOrderEmail,
+        address: newOrderAddress,
+        status: 'Pending',
+        items: newOrderItems.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        totalAmount: `₹${totalAmount}`,
+        advance: `₹${advanceAmount}`,
+        balance: `₹${balanceAmount}`,
+        notes: newOrderNotes
+      };
+
+      setDummyOrders([...dummyOrders, newOrder]);
+      closeAddOrderModal();
+    }
+  };
+
+  const addItemToOrder = (itemId: string) => {
+    const item = dummyItems.find(i => i.id === itemId);
+    if (item) {
+      const existingItemIndex = newOrderItems.findIndex(i => i.id === itemId);
+      if (existingItemIndex >= 0) {
+        // Update quantity
+        const updatedItems = [...newOrderItems];
+        updatedItems[existingItemIndex].quantity += 1;
+        setNewOrderItems(updatedItems);
+      } else {
+        // Add new item
+        setNewOrderItems([...newOrderItems, {
+          id: item.id,
+          name: item.name,
+          quantity: 1,
+          price: item.price
+        }]);
+      }
+    }
+    // Close the dropdown menu after adding item
+    setItemDropdownOpen(false);
+  };
+
+  const removeItemFromOrder = (itemId: string) => {
+    setNewOrderItems(newOrderItems.filter(item => item.id !== itemId));
+  };
+
+  const updateItemQuantity = (itemId: string, quantity: number) => {
+    if (quantity <= 0) {
+      removeItemFromOrder(itemId);
+      return;
+    }
+    const updatedItems = newOrderItems.map(item =>
+      item.id === itemId ? { ...item, quantity } : item
+    );
+    setNewOrderItems(updatedItems);
+  };
+
   const openOrderDetails = (order) => {
     setSelectedOrder(order);
   };
 
   const closeOrderDetails = () => {
     setSelectedOrder(null);
+  };
+
+  const openAddOrderModal = () => {
+    setAddOrderModalOpen(true);
+  };
+
+  const closeAddOrderModal = () => {
+    setAddOrderModalOpen(false);
+    // Reset form
+    setNewOrderCustomer('');
+    setNewOrderPhone('');
+    setNewOrderAddress('');
+    setNewOrderEmail('');
+    setNewOrderDate('');
+    setNewOrderItems([]);
+    setNewOrderAdvance('');
+    setNewOrderNotes('');
   };
 
   const changeTab = (tab: string) => {
@@ -335,7 +439,7 @@ export default function NandaTentHouse() {
         </h1>
         {(activeTab === 'home' || activeTab === 'items' || activeTab === 'orders') && (
           <button
-            onClick={activeTab === 'items' ? openItemModal : addOrder}
+            onClick={activeTab === 'items' ? openItemModal : openAddOrderModal}
             className="p-2 hover:bg-green-700 rounded flex items-center space-x-1 bg-gray-50 text-green-600"
             aria-label={activeTab === 'items' ? "Add Items" : "Add Order"}
           >
@@ -561,10 +665,207 @@ export default function NandaTentHouse() {
         </main>
       )}
 
+      {/* Add Order Modal */}
+      {addOrderModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-md max-h-[90vh] overflow-y-auto border border-gray-300">
+            <div className="bg-green-600 text-white px-6 py-4 rounded-t-lg -m-6 mb-4 relative flex justify-center items-center">
+              <h2 className="text-xl font-bold text-center">Add New Order</h2>
+              <button
+                onClick={closeAddOrderModal}
+                className="absolute right-4 top-4 text-white hover:text-gray-200 p-2 hover:bg-green-700 rounded-full transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Customer Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Customer Information</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                    <input
+                      type="text"
+                      value={newOrderCustomer}
+                      onChange={(e) => setNewOrderCustomer(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="Enter customer name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                    <input
+                      type="tel"
+                      value={newOrderPhone}
+                      onChange={(e) => setNewOrderPhone(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="Enter phone number"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <textarea
+                      value={newOrderAddress}
+                      onChange={(e) => setNewOrderAddress(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="Enter address"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Event Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Event Date</label>
+                <input
+                  type="date"
+                  value={newOrderDate}
+                  onChange={(e) => setNewOrderDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              {/* Items Selection */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-800">Select Items</h3>
+                  <button
+                    onClick={() => setItemDropdownOpen(!itemDropdownOpen)}
+                    className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm"
+                  >
+                    {itemDropdownOpen ? 'Close' : 'Add Items'}
+                  </button>
+                </div>
+
+                {/* Items Dropdown */}
+                {itemDropdownOpen && (
+                  <div className="mb-4 border border-gray-200 rounded-md max-h-60 overflow-y-auto">
+                    <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                      <div className="grid grid-cols-4 gap-2 text-sm font-medium text-gray-700">
+                        <span>Name</span>
+                        <span>Stock</span>
+                        <span>Price/Day</span>
+                        <span>Action</span>
+                      </div>
+                    </div>
+                    {dummyItems.map((item) => (
+                      <div key={item.id} className="px-4 py-2 border-b border-gray-100 hover:bg-gray-50">
+                        <div className="grid grid-cols-4 gap-2 items-center text-sm">
+                          <span className="font-medium text-gray-800">{item.name}</span>
+                          <span className="text-gray-600">{item.available}</span>
+                          <span className="text-green-600 font-medium">{item.price}</span>
+                          <button
+                            onClick={() => addItemToOrder(item.id)}
+                            className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Selected Items Table */}
+                <div className="bg-white shadow-sm overflow-hidden border border-gray-200 rounded-md">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="border-l border-r border-green-200 px-1 py-2 text-center font-bold text-white bg-pink-500 text-xs">ଦ୍ରବ୍ୟର ନାମ</th>
+                        <th className="border-l border-r border-green-200 px-1 py-2 text-center font-bold text-white bg-pink-500 text-xs">ମୂଲ୍ୟ</th>
+                        <th className="border-l border-r border-green-200 px-1 py-2 text-center font-bold text-white bg-pink-500 text-xs">ପରିମାଣ</th>
+                        <th className="border-l border-r border-green-200 px-1 py-2 text-center font-bold text-white bg-pink-500 text-xs">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {newOrderItems.map((item, index) => (
+                        <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-green-50'}>
+                          <td className="border border-green-200 p-2 text-center font-semibold text-gray-900 text-sm">{item.name}</td>
+                          <td className="border border-green-200 p-2 text-center text-gray-600 text-sm">
+                            <span className="text-base font-bold">{item.price.replace('₹', '').replace('/day', '')}</span><span className="text-xs">/day</span>
+                          </td>
+                          <td className="border border-green-200 p-2 text-center text-green-600 font-semibold">
+                            <div className="flex items-center justify-center space-x-2">
+                              <button
+                                onClick={() => removeItemFromOrder(item.id)}
+                                className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold"
+                              >
+                                -
+                              </button>
+                              <span className="w-6 text-center font-medium text-sm">{item.quantity}</span>
+                              <button
+                                onClick={() => addItemToOrder(item.id)}
+                                className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </td>
+                          <td className="border border-green-200 p-2 text-center">
+                            <button
+                              onClick={() => removeItemFromOrder(item.id)}
+                              className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Total Calculation */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-800 mb-2">Total Amount</h4>
+                <p className="text-2xl font-bold text-green-600">
+                  ₹{newOrderItems.reduce((total, item) => {
+                    const price = parseInt(item.price.replace('₹', '').replace('/day', ''));
+                    return total + (price * item.quantity);
+                  }, 0).toLocaleString()}
+                </p>
+              </div>
+
+              {/* Advance Payment */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Advance Payment (₹)</label>
+                <input
+                  type="number"
+                  value={newOrderAdvance}
+                  onChange={(e) => setNewOrderAdvance(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="Enter advance amount"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={closeAddOrderModal}
+                  className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitNewOrder}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                  disabled={!newOrderCustomer || !newOrderPhone || !newOrderDate || newOrderItems.length === 0}
+                >
+                  Create Order
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Item Add Modal */}
       {itemModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-md border border-gray-300">
             <h2 className="text-lg font-bold text-gray-800 mb-4">ନୂଆ ଦ୍ରବ୍ୟ ଯୋଗ କରନ୍ତୁ</h2>
             <div className="space-y-4">
               <div>
@@ -619,7 +920,7 @@ export default function NandaTentHouse() {
 
       {/* Order Details Modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
           <div className="bg-white rounded-lg shadow-lg py-6 px-0 w-11/12 max-w-md max-h-[90vh] overflow-y-auto">
             <div className="bg-green-600 text-white px-6 py-4 rounded-t-lg -m-6 mb-4 relative flex justify-center items-center">
               <h2 className="text-xl font-bold text-center">Order Details</h2>
