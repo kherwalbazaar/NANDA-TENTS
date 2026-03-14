@@ -36,6 +36,7 @@ export default function NandaTentHouse() {
   const [newItemPrice, setNewItemPrice] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallPopup, setShowInstallPopup] = useState(false);
   const [dummyItems, setDummyItems] = useState([
     {
       id: '1',
