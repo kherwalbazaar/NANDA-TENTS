@@ -384,6 +384,14 @@ export default function NandaTentHouse() {
     setNewOrderItems(newOrderItems.filter(item => item.id !== itemId));
   };
 
+  const subtractItemQuantity = (itemId: string) => {
+    setNewOrderItems(newOrderItems.map(item =>
+      item.id === itemId && item.quantity > 1
+        ? { ...item, quantity: item.quantity - 1 }
+        : item
+    ));
+  };
+
   const updateItemQuantity = (itemId: string, quantity: number) => {
     if (quantity <= 0) {
       removeItemFromOrder(itemId);
@@ -791,8 +799,13 @@ export default function NandaTentHouse() {
                           <td className="border border-green-200 p-2 text-center text-green-600 font-semibold">
                             <div className="flex items-center justify-center space-x-2">
                               <button
-                                onClick={() => removeItemFromOrder(item.id)}
-                                className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold"
+                                onClick={() => subtractItemQuantity(item.id)}
+                                disabled={item.quantity <= 1}
+                                className={`w-6 h-6 text-white rounded-full flex items-center justify-center text-xs font-bold ${
+                                  item.quantity <= 1
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-red-500 hover:bg-red-600'
+                                }`}
                               >
                                 -
                               </button>
