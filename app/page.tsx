@@ -189,12 +189,25 @@ export default function NandaTentHouse() {
     }
   };
 
-  const handleShareWhatsApp = () => {
+  const handleNativeShare = async () => {
     const appUrl = window.location.origin;
-    const message = `*NANDA TENT* 🏕️\n\nProfessional Tent Rental Services\n\n📱 Download our app: ${appUrl}\n\n📞 Call us for bookings\n🏆 Best quality tents at affordable prices\n🎯 Perfect for weddings, parties, and events\n\n#NandaTent #TentRental`;
-    
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    const shareData = {
+      title: 'NANDA TENT',
+      text: 'Professional Tent Rental Services for weddings, parties, and events!',
+      url: appUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.log('Error sharing:', err);
+      }
+    } else {
+      // Fallback to copying URL
+      navigator.clipboard.writeText(appUrl);
+      alert('NANDA TENT link copied to clipboard!');
+    }
   };
 
   const toggleSidebar = () => {
@@ -462,16 +475,26 @@ export default function NandaTentHouse() {
         <h1 className="text-lg font-bold text-center flex-1">
           {activeTab === 'items' ? 'TENT ITEMS' : activeTab === 'orders' ? 'MY ALL ORDER' : 'NANDA TENT HOUSE'}
         </h1>
-        {(activeTab === 'home' || activeTab === 'items' || activeTab === 'orders') && (
+        <div className="flex items-center space-x-2">
           <button
-            onClick={activeTab === 'items' ? openItemModal : openAddOrderModal}
-            className="p-2 hover:bg-green-700 rounded flex items-center space-x-1 bg-gray-50 text-green-600"
-            aria-label={activeTab === 'items' ? "Add Items" : "Add Order"}
+            onClick={handleNativeShare}
+            className="p-2 hover:bg-green-700 rounded"
+            aria-label="Share app"
+            title="Share NANDA TENT"
           >
-            <Plus size={20} />
-            <span className="text-sm font-medium">{activeTab === 'items' ? 'Add Items' : 'Add Order'}</span>
+            <Share2 size={20} />
           </button>
-        )}
+          {(activeTab === 'home' || activeTab === 'items' || activeTab === 'orders') && (
+            <button
+              onClick={activeTab === 'items' ? openItemModal : openAddOrderModal}
+              className="p-2 hover:bg-green-700 rounded flex items-center space-x-1 bg-gray-50 text-green-600"
+              aria-label={activeTab === 'items' ? "Add Items" : "Add Order"}
+            >
+              <Plus size={20} />
+              <span className="text-sm font-medium">{activeTab === 'items' ? 'Add Items' : 'Add Order'}</span>
+            </button>
+          )}
+        </div>
       </nav>
 
       {/* Sidebar Overlay */}
@@ -489,13 +512,6 @@ export default function NandaTentHouse() {
         } pt-16`}
       >
         <nav className="flex flex-col p-4 space-y-2">
-          <button
-            onClick={handleShareWhatsApp}
-            className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-green-50 rounded-lg transition-colors"
-          >
-            <Share2 className="w-5 h-5 text-green-600" />
-            <span className="font-medium">Share on WhatsApp</span>
-          </button>
           <button
             onClick={handleInstallClick}
             className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-green-50 rounded-lg transition-colors"
