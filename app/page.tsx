@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Menu, User, Home, Package, ClipboardList, DollarSign, Plus, ChevronRight, Phone, Share2, Download } from 'lucide-react';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, getDocs, addDoc } from 'firebase/firestore';
 
 interface OrderItem {
   name: string;
@@ -100,106 +102,27 @@ export default function NandaTentHouse() {
     }
   ]);
 
-  const [dummyOrders, setDummyOrders] = useState<Order[]>([
-    { 
-      id: 1,
-      name: 'Wedding Event', 
-      price: '₹3500',
-      date: '13 Mar 2026',
-      customer: 'Rajesh Kumar',
-      phone: '+91 9876543210',
-      email: 'rajesh@example.com',
-      address: '123 Main Street, Bhubaneswar',
-      status: 'Confirmed',
-      items: [
-        { name: 'Wedding Tent (20x30)', quantity: 2, price: '₹2500/day' },
-        { name: 'Chair Set (50)', quantity: 3, price: '₹300/day' },
-        { name: 'Sound System', quantity: 1, price: '₹1000/day' }
-      ],
-      totalAmount: '₹3500',
-      advance: '₹1000',
-      balance: '₹2500',
-      notes: 'Full setup required with decoration'
-    },
-    { 
-      id: 2,
-      name: 'Birthday Party', 
-      price: '₹1500',
-      date: '14 Mar 2026',
-      customer: 'Priya Sharma',
-      phone: '+91 8765432109',
-      email: 'priya@example.com',
-      address: '456 Park Avenue, Cuttack',
-      status: 'Pending',
-      items: [
-        { name: 'Party Tent (10x15)', quantity: 1, price: '₹1500/day' },
-        { name: 'Table (6ft)', quantity: 2, price: '₹200/day' }
-      ],
-      totalAmount: '₹1500',
-      advance: '₹500',
-      balance: '₹1000',
-      notes: 'Birthday decorations needed'
-    },
-    { 
-      id: 3,
-      name: 'Stage Decoration', 
-      price: '₹5000',
-      date: '15 Mar 2026',
-      customer: 'Amit Singh',
-      phone: '+91 7654321098',
-      email: 'amit@example.com',
-      address: '789 Theater Road, Puri',
-      status: 'In Progress',
-      items: [
-        { name: 'Stage Backdrop', quantity: 1, price: '₹800/day' },
-        { name: 'Sound System', quantity: 1, price: '₹1000/day' },
-        { name: 'Party Tent (10x15)', quantity: 3, price: '₹1500/day' }
-      ],
-      totalAmount: '₹5000',
-      advance: '₹2000',
-      balance: '₹3000',
-      notes: 'Professional stage setup required'
-    },
-    { 
-      id: 4,
-      name: 'Corporate Event', 
-      price: '₹2800',
-      date: '16 Mar 2026',
-      customer: 'Sunita Patel',
-      phone: '+91 6543210987',
-      email: 'sunita@example.com',
-      address: '321 Business Center, Bhubaneswar',
-      status: 'Confirmed',
-      items: [
-        { name: 'Wedding Tent (20x30)', quantity: 1, price: '₹2500/day' },
-        { name: 'Chair Set (50)', quantity: 1, price: '₹300/day' }
-      ],
-      totalAmount: '₹2800',
-      advance: '₹800',
-      balance: '₹2000',
-      notes: 'Corporate meeting setup'
-    },
-    { 
-      id: 5,
-      name: 'Engagement Party', 
-      price: '₹4200',
-      date: '17 Mar 2026',
-      customer: 'Vikram Rao',
-      phone: '+91 5432109876',
-      email: 'vikram@example.com',
-      address: '654 Celebration Hall, Cuttack',
-      status: 'Confirmed',
-      items: [
-        { name: 'Party Tent (10x15)', quantity: 2, price: '₹1500/day' },
-        { name: 'Chair Set (50)', quantity: 2, price: '₹300/day' },
-        { name: 'Sound System', quantity: 1, price: '₹1000/day' }
-      ],
-      totalAmount: '₹4200',
-      advance: '₹1500',
-      balance: '₹2700',
-      notes: 'Traditional engagement ceremony setup'
-    },
-  ]);
+  const [dummyOrders, setDummyOrders] = useState<any[]>([]);
+
+  // Load orders from Firebase
+  useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        const ordersCollection = collection(db, 'orders');
+        const ordersSnapshot = await getDocs(ordersCollection);
+        const ordersList = ordersSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as any[];
+        setDummyOrders(ordersList);
+      } catch (error) {
+        console.error('Error loading orders:', error);
+        alert('Error loading orders from database');
+      }
+    };
+
+    loadOrders();
+  }, []);
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
@@ -315,24 +238,41 @@ export default function NandaTentHouse() {
     setNewItemQuantity('');
   };
 
-  const submitNewItem = () => {
-    if (newItemName && newItemPrice && newItemQuantity) {
+  const submitNewItem = async () => {
+    if (!newItemName || !newItemPrice) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
       const newItem = {
-        id: (dummyItems.length + 1).toString(),
+        id: Date.now().toString(),
         name: newItemName,
-        category: newItemCategory,
-        available: parseInt(newItemQuantity),
-        total: parseInt(newItemQuantity),
+        available: parseInt(newItemQuantity) || 0,
+        total: parseInt(newItemQuantity) || 0,
         price: `₹${newItemPrice}/day`,
-        description: `${newItemName} - ${newItemCategory}`,
-        status: 'Available'
+        status: 'Available',
+        createdAt: new Date()
       };
+
+      // Add to Firestore
+      await addDoc(collection(db, 'items'), newItem);
+
+      // Update local state
       setDummyItems([...dummyItems, newItem]);
-      closeItemModal();
+
+      // Reset form
+      setNewItemName('');
+      setNewItemPrice('');
+      setNewItemQuantity('');
+      setItemModalOpen(false);
+    } catch (error) {
+      console.error('Error adding item:', error);
+      alert('Error adding item. Please try again.');
     }
   };
 
-  const submitNewOrder = () => {
+  const submitNewOrder = async () => {
     if (newOrderCustomer && newOrderPhone && newOrderDate && newOrderItems.length > 0) {
       // Calculate total amount
       const totalAmount = newOrderItems.reduce((total, item) => {
@@ -340,28 +280,23 @@ export default function NandaTentHouse() {
         return total + (price * item.quantity);
       }, 0);
 
-      const advanceAmount = parseInt(newOrderAdvance) || 0;
-      const balanceAmount = totalAmount - advanceAmount;
+      try {
+        const newOrder = {
+          id: Date.now().toString(),
+          customerName: newOrderCustomer,
+          phone: newOrderPhone,
+          address: newOrderAddress,
+          eventDate: newOrderDate,
+          items: newOrderItems,
+          advancePayment: parseInt(newOrderAdvance) || 0,
+          totalAmount: totalAmount,
+          balanceAmount: totalAmount - (parseInt(newOrderAdvance) || 0),
+          status: 'Pending',
+          createdAt: new Date()
+        };
 
-      const newOrder: Order = {
-        id: dummyOrders.length + 1,
-        name: `Order for ${newOrderCustomer}`,
-        price: `₹${totalAmount}`,
-        date: newOrderDate,
-        customer: newOrderCustomer,
-        phone: newOrderPhone,
-        email: newOrderEmail,
-        address: newOrderAddress,
-        status: 'Pending',
-        items: newOrderItems.map(item => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        totalAmount: `₹${totalAmount}`,
-        advance: `₹${advanceAmount}`,
-        balance: `₹${balanceAmount}`,
-        notes: newOrderNotes
+        // Add to Firestore
+        await addDoc(collection(db, 'orders'), newOrder);
       };
 
       setDummyOrders([...dummyOrders, newOrder]);
