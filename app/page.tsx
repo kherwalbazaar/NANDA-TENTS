@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Menu, User, Home, Package, ClipboardList, DollarSign, Plus, ChevronRight, Phone, Share2, Download } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Menu, User, Home, Package, ClipboardList, DollarSign, Plus, ChevronRight, Phone, Share2, Download, LogOut } from 'lucide-react';
 import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useAuth } from '@/lib/auth-context';
 
 interface OrderItem {
   id: string;
@@ -42,6 +44,30 @@ interface Order {
 }
 
 export default function NandaTentHouse() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
   const [itemsModalOpen, setItemsModalOpen] = useState(false);
@@ -56,7 +82,7 @@ export default function NandaTentHouse() {
   const [showInstallPopup, setShowInstallPopup] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
 
   // Home page metrics
   const [totalItems, setTotalItems] = useState(0);
@@ -99,7 +125,7 @@ export default function NandaTentHouse() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        setLoading(true);
+        setDataLoading(true);
 
         // Load items
         const itemsCollection = collection(db, 'items');
@@ -126,7 +152,7 @@ export default function NandaTentHouse() {
         console.error('Error loading data:', error);
         alert('Error loading data from database');
       } finally {
-        setLoading(false);
+        setDataLoading(false);
       }
     };
 
@@ -135,10 +161,10 @@ export default function NandaTentHouse() {
 
   // Recalculate metrics when data changes
   useEffect(() => {
-    if (!loading && (items.length > 0 || orders.length > 0)) {
+    if (!dataLoading && (items.length > 0 || orders.length > 0)) {
       calculateMetrics();
     }
-  }, [items, orders]);
+  }, [items, orders, dataLoading]);
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
@@ -461,6 +487,15 @@ export default function NandaTentHouse() {
     setActiveTab(tab);
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 w-full max-w-md mx-auto relative">
       {/* Top Navbar */}
@@ -560,6 +595,16 @@ export default function NandaTentHouse() {
           >
             <Menu size={20} />
             <span className="font-medium">Settings</span>
+          </button>
+          <button
+            onClick={() => {
+              closeSidebar();
+              handleLogout();
+            }}
+            className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-red-50 text-gray-700 hover:text-red-600 transition w-full text-left"
+          >
+            <LogOut size={20} />
+            <span className="font-medium">Logout</span>
           </button>
           <button
             onClick={() => {
