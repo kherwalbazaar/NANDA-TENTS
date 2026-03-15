@@ -2,7 +2,7 @@ const CACHE_NAME = 'nanda-tent-v1';
 const urlsToCache = [
   '/',
   '/manifest.json',
-  '/icon-192x192.svg',
+  '/icon.png',
   '/globals.css'
 ];
 
