@@ -47,27 +47,6 @@ export default function NandaTentHouse() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
   const [itemsModalOpen, setItemsModalOpen] = useState(false);
@@ -90,6 +69,22 @@ export default function NandaTentHouse() {
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  // Add Order Modal States
+  const [addOrderModalOpen, setAddOrderModalOpen] = useState(false);
+  const [isEditingOrder, setIsEditingOrder] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [newOrderCustomer, setNewOrderCustomer] = useState('');
+  const [newOrderPhone, setNewOrderPhone] = useState('');
+  const [newOrderAddress, setNewOrderAddress] = useState('');
+  const [newOrderEmail, setNewOrderEmail] = useState('');
+  const [newOrderDate, setNewOrderDate] = useState('');
+  const [newOrderItems, setNewOrderItems] = useState<Array<{id: string, name: string, quantity: number, price: string}>>([]);
+  const [newOrderAdvance, setNewOrderAdvance] = useState('');
+  const [newOrderNotes, setNewOrderNotes] = useState('');
+  const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
 
   // Calculate home page metrics
   const calculateMetrics = () => {
@@ -166,22 +161,6 @@ export default function NandaTentHouse() {
     }
   }, [items, orders, dataLoading]);
 
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-
-  // Add Order Modal States
-  const [addOrderModalOpen, setAddOrderModalOpen] = useState(false);
-  const [isEditingOrder, setIsEditingOrder] = useState(false);
-  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
-  const [newOrderCustomer, setNewOrderCustomer] = useState('');
-  const [newOrderPhone, setNewOrderPhone] = useState('');
-  const [newOrderAddress, setNewOrderAddress] = useState('');
-  const [newOrderEmail, setNewOrderEmail] = useState('');
-  const [newOrderDate, setNewOrderDate] = useState('');
-  const [newOrderItems, setNewOrderItems] = useState<Array<{id: string, name: string, quantity: number, price: string}>>([]);
-  const [newOrderAdvance, setNewOrderAdvance] = useState('');
-  const [newOrderNotes, setNewOrderNotes] = useState('');
-  const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
-
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
@@ -198,6 +177,27 @@ export default function NandaTentHouse() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
