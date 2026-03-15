@@ -2,30 +2,43 @@
 
 import { useState, useEffect } from 'react';
 import { Menu, User, Home, Package, ClipboardList, DollarSign, Plus, ChevronRight, Phone, Share2, Download } from 'lucide-react';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, addDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface OrderItem {
+  id: string;
   name: string;
   quantity: number;
   price: string;
 }
 
-interface Order {
-  id: number;
+interface Item {
+  id: string;
   name: string;
-  price: string;
-  date: string;
-  customer: string;
-  phone: string;
-  email: string;
-  address: string;
+  category: string;
+  price: number;
+  unit: string;
+  description: string;
+  available: number;
+  total: number;
   status: string;
+  createdAt?: any;
+}
+
+interface Order {
+  id: string;
+  customerName: string;
+  phone: string;
+  address: string;
+  email?: string;
+  eventDate: string;
   items: OrderItem[];
-  totalAmount: string;
-  advance: string;
-  balance: string;
-  notes: string;
+  totalAmount: number;
+  advancePayment: number;
+  balanceAmount: number;
+  status: string;
+  notes?: string;
+  createdAt?: any;
 }
 
 export default function NandaTentHouse() {
@@ -36,98 +49,103 @@ export default function NandaTentHouse() {
   const [newItemName, setNewItemName] = useState('');
   const [newItemCategory, setNewItemCategory] = useState('Tents');
   const [newItemPrice, setNewItemPrice] = useState('');
+  const [newItemUnit, setNewItemUnit] = useState('Piece');
+  const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallPopup, setShowInstallPopup] = useState(false);
-  const [dummyItems, setDummyItems] = useState([
-    {
-      id: '1',
-      name: 'Wedding Tent (20x30)',
-      category: 'Tents',
-      available: 5,
-      total: 8,
-      price: '₹2500/day',
-      description: 'Large wedding tent with full setup',
-      status: 'Available'
-    },
-    {
-      id: '2',
-      name: 'Party Tent (10x15)',
-      category: 'Tents',
-      available: 8,
-      total: 10,
-      price: '₹1500/day',
-      description: 'Medium party tent for gatherings',
-      status: 'Available'
-    },
-    {
-      id: '3',
-      name: 'Stage Backdrop',
-      category: 'Decor',
-      available: 3,
-      total: 5,
-      price: '₹800/day',
-      description: 'Elegant backdrop for events',
-      status: 'Low Stock'
-    },
-    {
-      id: '4',
-      name: 'Chair Set (50)',
-      category: 'Furniture',
-      available: 4,
-      total: 6,
-      price: '₹300/day',
-      description: 'Comfortable chairs for seating',
-      status: 'Available'
-    },
-    {
-      id: '5',
-      name: 'Table (6ft)',
-      category: 'Furniture',
-      available: 6,
-      total: 8,
-      price: '₹200/day',
-      description: 'Round table for dining/events',
-      status: 'Available'
-    },
-    {
-      id: '6',
-      name: 'Sound System',
-      category: 'Equipment',
-      available: 2,
-      total: 3,
-      price: '₹1000/day',
-      description: 'Professional audio setup',
-      status: 'Low Stock'
-    }
-  ]);
+  const [items, setItems] = useState<Item[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [dummyOrders, setDummyOrders] = useState<any[]>([]);
+  // Home page metrics
+  const [totalItems, setTotalItems] = useState(0);
+  const [todaysOrders, setTodaysOrders] = useState(0);
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
 
-  // Load orders from Firebase
+  // Calculate home page metrics
+  const calculateMetrics = () => {
+    // Total Items
+    setTotalItems(items.length);
+
+    // Today's Orders - count orders where eventDate is today
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const todaysOrderCount = orders.filter(order => {
+      const orderDate = new Date(order.eventDate).toISOString().split('T')[0];
+      return orderDate === today;
+    }).length;
+    setTodaysOrders(todaysOrderCount);
+
+    // Total Customers - unique customer names
+    const uniqueCustomers = new Set(orders.map(order => order.customerName));
+    setTotalCustomers(uniqueCustomers.size);
+
+    // Total Revenue - sum of all order totalAmount
+    const revenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+    setTotalRevenue(revenue);
+
+    // Recent Orders - latest 5 orders sorted by createdAt
+    const sortedOrders = [...orders].sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
+      const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime();
+    });
+    setRecentOrders(sortedOrders.slice(0, 5));
+  };
+
+  // Load data from Firebase
   useEffect(() => {
-    const loadOrders = async () => {
+    const loadData = async () => {
       try {
+        setLoading(true);
+
+        // Load items
+        const itemsCollection = collection(db, 'items');
+        const itemsSnapshot = await getDocs(itemsCollection);
+        const itemsList = itemsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Item[];
+        setItems(itemsList);
+
+        // Load orders
         const ordersCollection = collection(db, 'orders');
         const ordersSnapshot = await getDocs(ordersCollection);
         const ordersList = ordersSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        })) as any[];
-        setDummyOrders(ordersList);
+        })) as Order[];
+        setOrders(ordersList);
+
+        // Calculate metrics after loading data
+        calculateMetrics();
+
       } catch (error) {
-        console.error('Error loading orders:', error);
-        alert('Error loading orders from database');
+        console.error('Error loading data:', error);
+        alert('Error loading data from database');
+      } finally {
+        setLoading(false);
       }
     };
 
-    loadOrders();
+    loadData();
   }, []);
+
+  // Recalculate metrics when data changes
+  useEffect(() => {
+    if (!loading && (items.length > 0 || orders.length > 0)) {
+      calculateMetrics();
+    }
+  }, [items, orders]);
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Add Order Modal States
   const [addOrderModalOpen, setAddOrderModalOpen] = useState(false);
+  const [isEditingOrder, setIsEditingOrder] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [newOrderCustomer, setNewOrderCustomer] = useState('');
   const [newOrderPhone, setNewOrderPhone] = useState('');
   const [newOrderAddress, setNewOrderAddress] = useState('');
@@ -193,37 +211,7 @@ export default function NandaTentHouse() {
   };
 
   const addNewItem = () => {
-    const newItem = {
-      id: (dummyItems.length + 1).toString(),
-      name: 'New Item',
-      category: 'General',
-      available: 1,
-      total: 1,
-      price: '₹500/day',
-      description: 'Newly added item',
-      status: 'Available'
-    };
-    setDummyItems([...dummyItems, newItem]);
-  };
-
-  const addOrder = () => {
-    const newOrder: Order = {
-      id: dummyOrders.length + 1,
-      name: 'New Order',
-      price: '₹1000',
-      date: new Date().toLocaleDateString('en-IN'),
-      customer: 'New Customer',
-      phone: '+91 0000000000',
-      email: 'customer@example.com',
-      address: 'Address not provided',
-      status: 'Pending',
-      items: [],
-      totalAmount: '₹1000',
-      advance: '₹0',
-      balance: '₹1000',
-      notes: 'New order created'
-    };
-    setDummyOrders([...dummyOrders, newOrder]);
+    // This function is no longer needed as we add items through the modal
   };
 
   const openItemModal = () => {
@@ -235,22 +223,27 @@ export default function NandaTentHouse() {
     setNewItemName('');
     setNewItemCategory('Tents');
     setNewItemPrice('');
+    setNewItemUnit('Piece');
+    setNewItemDescription('');
     setNewItemQuantity('');
   };
 
   const submitNewItem = async () => {
-    if (!newItemName || !newItemPrice) {
+    if (!newItemName || !newItemPrice || !newItemQuantity) {
       alert('Please fill in all required fields');
       return;
     }
 
     try {
-      const newItem = {
+      const newItem: Item = {
         id: Date.now().toString(),
         name: newItemName,
-        available: parseInt(newItemQuantity) || 0,
-        total: parseInt(newItemQuantity) || 0,
-        price: `₹${newItemPrice}/day`,
+        category: newItemCategory,
+        price: parseInt(newItemPrice),
+        unit: newItemUnit,
+        description: newItemDescription || '',
+        available: parseInt(newItemQuantity),
+        total: parseInt(newItemQuantity),
         status: 'Available',
         createdAt: new Date()
       };
@@ -259,13 +252,18 @@ export default function NandaTentHouse() {
       await addDoc(collection(db, 'items'), newItem);
 
       // Update local state
-      setDummyItems([...dummyItems, newItem]);
+      setItems([...items, newItem]);
 
       // Reset form
       setNewItemName('');
+      setNewItemCategory('Tents');
       setNewItemPrice('');
+      setNewItemUnit('Piece');
+      setNewItemDescription('');
       setNewItemQuantity('');
       setItemModalOpen(false);
+
+      alert('Item added successfully!');
     } catch (error) {
       console.error('Error adding item:', error);
       alert('Error adding item. Please try again.');
@@ -297,15 +295,65 @@ export default function NandaTentHouse() {
 
         // Add to Firestore
         await addDoc(collection(db, 'orders'), newOrder);
+
+        // Update local state
+        setOrders([...orders, newOrder]);
+        closeAddOrderModal();
+
+        alert('Order added successfully!');
+      } catch (error) {
+        console.error('Error adding order:', error);
+        alert('Error adding order. Please try again.');
+      }
+    }
+  };
+
+  const updateOrder = async () => {
+    if (!editingOrderId || !newOrderCustomer || !newOrderPhone || !newOrderDate || newOrderItems.length === 0) {
+      return;
+    }
+
+    // Calculate total amount
+    const totalAmount = newOrderItems.reduce((total, item) => {
+      const price = parseInt(item.price.replace('₹', '').replace('/day', ''));
+      return total + (price * item.quantity);
+    }, 0);
+
+    try {
+      const updatedOrder = {
+        customerName: newOrderCustomer,
+        phone: newOrderPhone,
+        address: newOrderAddress,
+        eventDate: newOrderDate,
+        items: newOrderItems,
+        advancePayment: parseInt(newOrderAdvance) || 0,
+        totalAmount: totalAmount,
+        balanceAmount: totalAmount - (parseInt(newOrderAdvance) || 0),
+        // Keep existing status and createdAt
       };
 
-      setDummyOrders([...dummyOrders, newOrder]);
+      // Update in Firestore
+      const orderRef = doc(db, 'orders', editingOrderId);
+      await updateDoc(orderRef, updatedOrder);
+
+      // Update local state
+      setOrders(orders.map(order =>
+        order.id === editingOrderId
+          ? { ...order, ...updatedOrder }
+          : order
+      ));
+
       closeAddOrderModal();
+
+      alert('Order updated successfully!');
+    } catch (error) {
+      console.error('Error updating order:', error);
+      alert('Error updating order. Please try again.');
     }
   };
 
   const addItemToOrder = (itemId: string) => {
-    const item = dummyItems.find(i => i.id === itemId);
+    const item = items.find(i => i.id === itemId);
     if (item) {
       const existingItemIndex = newOrderItems.findIndex(i => i.id === itemId);
       if (existingItemIndex >= 0) {
@@ -319,7 +367,7 @@ export default function NandaTentHouse() {
           id: item.id,
           name: item.name,
           quantity: 1,
-          price: item.price
+          price: `₹${item.price}/${item.unit.toLowerCase()}`
         }]);
       }
     }
@@ -358,6 +406,24 @@ export default function NandaTentHouse() {
     setSelectedOrder(null);
   };
 
+  const editOrder = (order: Order) => {
+    // Set editing mode
+    setIsEditingOrder(true);
+    setEditingOrderId(order.id);
+
+    // Pre-populate form with existing order data
+    setNewOrderCustomer(order.customerName);
+    setNewOrderPhone(order.phone);
+    setNewOrderAddress(order.address || '');
+    setNewOrderDate(order.eventDate);
+    setNewOrderItems(order.items);
+    setNewOrderAdvance(order.advancePayment?.toString() || '');
+
+    // Close order details modal and open add order modal
+    setSelectedOrder(null);
+    setAddOrderModalOpen(true);
+  };
+
   const openAddOrderModal = () => {
     setAddOrderModalOpen(true);
   };
@@ -373,6 +439,9 @@ export default function NandaTentHouse() {
     setNewOrderItems([]);
     setNewOrderAdvance('');
     setNewOrderNotes('');
+    // Reset editing state
+    setIsEditingOrder(false);
+    setEditingOrderId(null);
   };
 
   const changeTab = (tab: string) => {
@@ -495,41 +564,39 @@ export default function NandaTentHouse() {
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
               <p className="text-gray-600 text-sm font-medium mb-2">Total Items</p>
-              <p className="text-3xl font-bold text-green-600">256</p>
+              <p className="text-3xl font-bold text-green-600">{totalItems}</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
               <p className="text-gray-600 text-sm font-medium mb-2">Today's Orders</p>
-              <p className="text-3xl font-bold text-green-600">12</p>
+              <p className="text-3xl font-bold text-green-600">{todaysOrders}</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
               <p className="text-gray-600 text-sm font-medium mb-2">Customers</p>
-              <p className="text-3xl font-bold text-green-600">48</p>
+              <p className="text-3xl font-bold text-green-600">{totalCustomers}</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
               <p className="text-gray-600 text-sm font-medium mb-2">Total Revenue</p>
-              <p className="text-3xl font-bold text-green-600">₹35K</p>
+              <p className="text-3xl font-bold text-green-600">₹{totalRevenue.toLocaleString()}</p>
             </div>
           </div>
           <div className="mt-8 mb-4">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Recent Orders</h2>
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              {[
-                { name: 'Wedding Event', price: '₹3500' },
-                { name: 'Birthday Party', price: '₹1500' },
-                { name: 'Stage Decoration', price: '₹5000' },
-                { name: 'Corporate Event', price: '₹2800' },
-                { name: 'Engagement Party', price: '₹4200' },
-              ].map((order, index, array) => (
-                <div
-                  key={index}
-                  className={`flex justify-between items-center px-4 py-4 ${
-                    index !== array.length - 1 ? 'border-b border-gray-200' : ''
-                  }`}
-                >
-                  <span className="text-gray-700 font-medium">{order.name}</span>
-                  <span className="text-green-600 font-semibold">{order.price}</span>
-                </div>
-              ))}
+              {recentOrders.length === 0 ? (
+                <div className="p-6 text-center text-gray-600">No orders found.</div>
+              ) : (
+                recentOrders.map((order, index) => (
+                  <div
+                    key={order.id}
+                    className={`flex justify-between items-center px-4 py-4 ${
+                      index !== recentOrders.length - 1 ? 'border-b border-gray-200' : ''
+                    }`}
+                  >
+                    <span className="text-gray-700 font-medium">{order.customerName}</span>
+                    <span className="text-green-600 font-semibold">₹{order.totalAmount.toLocaleString()}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </main>
@@ -540,28 +607,34 @@ export default function NandaTentHouse() {
         <main className="flex-1 overflow-y-auto pt-16 px-0 bg-green-100">
           <div className="">
             <div className="bg-white shadow-sm overflow-hidden">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr>
-                    <th className="border-l border-r border-green-200 p-2 text-center font-bold text-white bg-pink-500">ଦ୍ରବ୍ୟର ନାମ</th>
-                    <th className="border-l border-r border-green-200 p-2 text-center font-bold text-white bg-pink-500">ଦୈନିକ ମୂଲ୍ୟ</th>
-                    <th className="border-l border-r border-green-200 p-2 text-center font-bold text-white bg-pink-500">ପରିମାଣ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dummyItems.map((item) => (
-                    <tr key={item.id}>
-                      <td className="border border-green-200 p-2 text-center font-semibold text-gray-900 text-sm">{item.name}</td>
-                      <td className="border border-green-200 p-2 text-center text-gray-600 text-sm">
-                        <span className="text-base font-bold">{item.price.replace('₹', '').replace('/day', '')}</span><span className="text-xs">/day</span>
-                      </td>
-                      <td className="border border-green-200 p-2 text-center text-green-600 font-semibold">
-                        <span className="text-lg font-bold">{item.available}</span>
-                      </td>
+              {loading ? (
+                <div className="p-6 text-center text-gray-600">Loading items...</div>
+              ) : items.length === 0 ? (
+                <div className="p-6 text-center text-gray-600">No items found. Add items to get started.</div>
+              ) : (
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="border-l border-r border-green-200 p-2 text-center font-bold text-white bg-pink-500">ଦ୍ରବ୍ୟର ନାମ</th>
+                      <th className="border-l border-r border-green-200 p-2 text-center font-bold text-white bg-pink-500">ଦୈନିକ ମୂଲ୍ୟ</th>
+                      <th className="border-l border-r border-green-200 p-2 text-center font-bold text-white bg-pink-500">ପରିମାଣ</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {items.map((item) => (
+                      <tr key={item.id}>
+                        <td className="border border-green-200 p-2 text-center font-semibold text-gray-900 text-sm">{item.name}</td>
+                        <td className="border border-green-200 p-2 text-center text-gray-600 text-sm">
+                          <span className="text-base font-bold">₹{item.price}</span><span className="text-xs">/{item.unit.toLowerCase()}</span>
+                        </td>
+                        <td className="border border-green-200 p-2 text-center text-green-600 font-semibold">
+                          <span className="text-lg font-bold">{item.available}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </main>
@@ -572,23 +645,29 @@ export default function NandaTentHouse() {
         <main className="flex-1 overflow-y-auto pt-16 px-0 bg-green-100">
           <div className="">
             <div className="bg-white shadow-sm overflow-hidden">
-              {dummyOrders.map((order, index) => (
-                <div key={index} className={`flex justify-between items-center px-4 py-4 cursor-pointer hover:bg-green-50 transition border-b border-gray-200 ${
-                  index % 2 === 0 ? 'bg-white' : 'bg-green-50'
-                }`}>
-                  <div className="flex-1">
-                    <span className="text-gray-700 font-medium">{order.name}</span>
-                    <span className="text-gray-500 text-sm ml-2">- {order.date}</span>
-                    <span className="text-gray-600 ml-2">- {order.price}</span>
+              {loading ? (
+                <div className="p-6 text-center text-gray-600">Loading orders...</div>
+              ) : orders.length === 0 ? (
+                <div className="p-6 text-center text-gray-600">No orders yet. Create one to get started.</div>
+              ) : (
+                orders.map((order, index) => (
+                  <div key={order.id} className={`flex justify-between items-center px-4 py-4 cursor-pointer hover:bg-green-50 transition border-b border-gray-200 ${
+                    index % 2 === 0 ? 'bg-white' : 'bg-green-50'
+                  }`}>
+                    <div className="flex-1">
+                      <span className="text-gray-700 font-medium">{order.customerName}</span>
+                      <span className="text-gray-500 text-sm ml-2">- {new Date(order.eventDate).toLocaleDateString('en-IN')}</span>
+                      <span className="text-gray-600 ml-2">- ₹{order.totalAmount}</span>
+                    </div>
+                    <span 
+                      className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ml-2 cursor-pointer hover:bg-gray-200 transition"
+                      onClick={() => openOrderDetails(order)}
+                    >
+                      <ChevronRight size={16} className="text-gray-600" />
+                    </span>
                   </div>
-                  <span 
-                    className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full ml-2 cursor-pointer hover:bg-gray-200 transition"
-                    onClick={() => openOrderDetails(order)}
-                  >
-                    <ChevronRight size={16} className="text-gray-600" />
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </main>
@@ -640,7 +719,7 @@ export default function NandaTentHouse() {
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
           <div className="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-md max-h-[90vh] overflow-y-auto border border-gray-300">
             <div className="bg-green-600 text-white px-6 py-4 rounded-t-lg -m-6 mb-4 relative flex justify-center items-center">
-              <h2 className="text-xl font-bold text-center">Add New Order</h2>
+              <h2 className="text-xl font-bold text-center">{isEditingOrder ? 'Update Order' : 'Add New Order'}</h2>
               <button
                 onClick={closeAddOrderModal}
                 className="absolute right-4 top-4 text-white hover:text-gray-200 p-2 hover:bg-green-700 rounded-full transition"
@@ -721,12 +800,12 @@ export default function NandaTentHouse() {
                         <span>Action</span>
                       </div>
                     </div>
-                    {dummyItems.map((item) => (
+                    {items.map((item) => (
                       <div key={item.id} className="px-4 py-2 border-b border-gray-100 hover:bg-gray-50">
                         <div className="grid grid-cols-4 gap-2 items-center text-sm">
                           <span className="font-medium text-gray-800">{item.name}</span>
                           <span className="text-gray-600">{item.available}</span>
-                          <span className="text-green-600 font-medium">{item.price}</span>
+                          <span className="text-green-600 font-medium">₹{item.price}/{item.unit.toLowerCase()}</span>
                           <button
                             onClick={() => addItemToOrder(item.id)}
                             className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
@@ -826,11 +905,11 @@ export default function NandaTentHouse() {
                   Cancel
                 </button>
                 <button
-                  onClick={submitNewOrder}
+                  onClick={isEditingOrder ? updateOrder : submitNewOrder}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                   disabled={!newOrderCustomer || !newOrderPhone || !newOrderDate || newOrderItems.length === 0}
                 >
-                  Create Order
+                  {isEditingOrder ? 'Update Order' : 'Create Order'}
                 </button>
               </div>
             </div>
@@ -910,11 +989,11 @@ export default function NandaTentHouse() {
             <div className="space-y-1">
               {/* Order Header */}
               <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">{selectedOrder.name}</h3>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">{selectedOrder.customerName}</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="font-medium text-gray-600">Date:</span>
-                    <p className="text-gray-800">{selectedOrder.date}</p>
+                    <span className="font-medium text-gray-600">Event Date:</span>
+                    <p className="text-gray-800">{new Date(selectedOrder.eventDate).toLocaleDateString('en-IN')}</p>
                   </div>
                   <div>
                     <span className="font-medium text-gray-600">Status:</span>
@@ -933,7 +1012,7 @@ export default function NandaTentHouse() {
                 <div className="space-y-2 text-sm">
                   <div>
                     <span className="font-medium text-gray-600">Name:</span>
-                    <p className="text-gray-800">{selectedOrder.customer}</p>
+                    <p className="text-gray-800">{selectedOrder.customerName}</p>
                   </div>
                   <div>
                     <span className="font-medium text-gray-600">Phone:</span>
@@ -990,15 +1069,15 @@ export default function NandaTentHouse() {
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div className="text-center">
                     <span className="font-medium text-gray-600 block">Total</span>
-                    <p className="text-lg font-bold text-green-600">{selectedOrder.totalAmount}</p>
+                    <p className="text-lg font-bold text-green-600">₹{selectedOrder.totalAmount?.toLocaleString()}</p>
                   </div>
                   <div className="text-center">
                     <span className="font-medium text-gray-600 block">Advance</span>
-                    <p className="text-lg font-bold text-blue-600">{selectedOrder.advance}</p>
+                    <p className="text-lg font-bold text-blue-600">₹{selectedOrder.advancePayment?.toLocaleString()}</p>
                   </div>
                   <div className="text-center">
                     <span className="font-medium text-gray-600 block">Balance</span>
-                    <p className="text-lg font-bold text-red-600">{selectedOrder.balance}</p>
+                    <p className="text-lg font-bold text-red-600">₹{selectedOrder.balanceAmount?.toLocaleString()}</p>
                   </div>
                 </div>
               </div>
@@ -1012,6 +1091,7 @@ export default function NandaTentHouse() {
                   Close
                 </button>
                 <button
+                  onClick={() => editOrder(selectedOrder)}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                 >
                   Edit Order
