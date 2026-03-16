@@ -116,38 +116,80 @@ export default function NandaTentHouse() {
     setRecentOrders(sortedOrders.slice(0, 5));
   };
 
-  // Load data from Firebase
+  // Cache management functions
+  const loadFromCache = () => {
+    try {
+      const cachedItems = localStorage.getItem('nandaTent_items');
+      const cachedOrders = localStorage.getItem('nandaTent_orders');
+      if (cachedItems) {
+        const itemsList = JSON.parse(cachedItems) as Item[];
+        setItems(itemsList);
+      }
+      if (cachedOrders) {
+        const ordersList = JSON.parse(cachedOrders) as Order[];
+        setOrders(ordersList);
+      }
+      return cachedItems || cachedOrders; // Return true if any cache was loaded
+    } catch (error) {
+      console.error('Error loading from cache:', error);
+      return false;
+    }
+  };
+
+  const saveToCache = (items: Item[], orders: Order[]) => {
+    try {
+      localStorage.setItem('nandaTent_items', JSON.stringify(items));
+      localStorage.setItem('nandaTent_orders', JSON.stringify(orders));
+    } catch (error) {
+      console.error('Error saving to cache:', error);
+    }
+  };
+
+  // Load data from cache first, then fetch fresh in background
   useEffect(() => {
     const loadData = async () => {
       try {
-        setDataLoading(true);
+        // First, load from cache and show immediately
+        const hasCache = loadFromCache();
+        if (hasCache) {
+          calculateMetrics();
+          setDataLoading(false); // Show cached data instantly
+        } else {
+          setDataLoading(true); // No cache, show loading
+        }
 
-        // Load items
+        // Then fetch fresh data in background
         const itemsCollection = collection(db, 'items');
         const itemsSnapshot = await getDocs(itemsCollection);
         const itemsList = itemsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         })) as Item[];
-        setItems(itemsList);
 
-        // Load orders
         const ordersCollection = collection(db, 'orders');
         const ordersSnapshot = await getDocs(ordersCollection);
         const ordersList = ordersSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         })) as Order[];
-        setOrders(ordersList);
 
-        // Calculate metrics after loading data
+        // Update state with fresh data
+        setItems(itemsList);
+        setOrders(ordersList);
+        saveToCache(itemsList, ordersList);
         calculateMetrics();
+
+        // If no cache was loaded, now hide loading
+        if (!hasCache) {
+          setDataLoading(false);
+        }
 
       } catch (error) {
         console.error('Error loading data:', error);
-        alert('Error loading data from database');
-      } finally {
-        setDataLoading(false);
+        if (!loadFromCache()) { // If no cache and error, show error
+          alert('Error loading data from database');
+          setDataLoading(false);
+        }
       }
     };
 
