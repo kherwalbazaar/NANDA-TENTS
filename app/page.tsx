@@ -710,24 +710,6 @@ export default function NandaTentHouse() {
               )}
             </div>
           </div>
-
-          {/* Loading Popup Overlay */}
-          {dataLoading && (
-            <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
-              <div className="bg-white rounded-xl p-8 shadow-lg max-w-sm w-full mx-4">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-                  <p className="text-gray-800 font-medium text-center">Loading dashboard data...</p>
-                  <div className="w-full">
-                    <div className="bg-gray-200 rounded-full h-3 overflow-hidden">
-                      <div className="bg-green-600 h-full rounded-full animate-pulse" style={{width: '100%'}}></div>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2 text-center">Fetching items and orders</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </main>
       )}
 
