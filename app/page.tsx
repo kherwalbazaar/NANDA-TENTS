@@ -629,61 +629,62 @@ export default function NandaTentHouse() {
 
       {/* Home Tab Content */}
       {activeTab === 'home' && (
-        <main className="flex-1 overflow-y-auto pt-16 px-2">
-          {dataLoading ? (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600 font-medium">Loading dashboard data...</p>
-              </div>
-              <div className="w-full max-w-md">
-                <div className="bg-gray-200 rounded-full h-3 overflow-hidden">
-                  <div className="bg-green-600 h-full rounded-full animate-pulse" style={{width: '100%'}}></div>
+        <main className="flex-1 overflow-y-auto pt-16 px-2 relative">
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
+              <p className="text-gray-600 text-sm font-medium mb-2">Total Items</p>
+              <p className="text-3xl font-bold text-green-600">{totalItems}</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
+              <p className="text-gray-600 text-sm font-medium mb-2">Today's Orders</p>
+              <p className="text-3xl font-bold text-green-600">{todaysOrders}</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
+              <p className="text-gray-600 text-sm font-medium mb-2">Customers</p>
+              <p className="text-3xl font-bold text-green-600">{totalCustomers}</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
+              <p className="text-gray-600 text-sm font-medium mb-2">Total Revenue</p>
+              <p className="text-3xl font-bold text-green-600">₹{totalRevenue.toLocaleString()}</p>
+            </div>
+          </div>
+          <div className="mt-8 mb-4">
+            <h2 className="text-lg font-bold text-gray-800 mb-4">Recent Orders</h2>
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              {recentOrders.length === 0 ? (
+                <div className="p-6 text-center text-gray-600">No orders found.</div>
+              ) : (
+                recentOrders.map((order, index) => (
+                  <div
+                    key={order.id}
+                    className={`flex justify-between items-center px-4 py-4 ${
+                      index !== recentOrders.length - 1 ? 'border-b border-gray-200' : ''
+                    }`}
+                  >
+                    <span className="text-gray-700 font-medium">{order.customerName}</span>
+                    <span className="text-green-600 font-semibold">₹{order.totalAmount.toLocaleString()}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Loading Popup Overlay */}
+          {dataLoading && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl p-8 shadow-lg max-w-sm w-full mx-4">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+                  <p className="text-gray-800 font-medium text-center">Loading dashboard data...</p>
+                  <div className="w-full">
+                    <div className="bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div className="bg-green-600 h-full rounded-full animate-pulse" style={{width: '100%'}}></div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2 text-center">Fetching items and orders</p>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-2 text-center">Fetching items and orders</p>
               </div>
             </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
-                  <p className="text-gray-600 text-sm font-medium mb-2">Total Items</p>
-                  <p className="text-3xl font-bold text-green-600">{totalItems}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
-                  <p className="text-gray-600 text-sm font-medium mb-2">Today's Orders</p>
-                  <p className="text-3xl font-bold text-green-600">{todaysOrders}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
-                  <p className="text-gray-600 text-sm font-medium mb-2">Customers</p>
-                  <p className="text-3xl font-bold text-green-600">{totalCustomers}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
-                  <p className="text-gray-600 text-sm font-medium mb-2">Total Revenue</p>
-                  <p className="text-3xl font-bold text-green-600">₹{totalRevenue.toLocaleString()}</p>
-                </div>
-              </div>
-              <div className="mt-8 mb-4">
-                <h2 className="text-lg font-bold text-gray-800 mb-4">Recent Orders</h2>
-                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                  {recentOrders.length === 0 ? (
-                    <div className="p-6 text-center text-gray-600">No orders found.</div>
-                  ) : (
-                    recentOrders.map((order, index) => (
-                      <div
-                        key={order.id}
-                        className={`flex justify-between items-center px-4 py-4 ${
-                          index !== recentOrders.length - 1 ? 'border-b border-gray-200' : ''
-                        }`}
-                      >
-                        <span className="text-gray-700 font-medium">{order.customerName}</span>
-                        <span className="text-green-600 font-semibold">₹{order.totalAmount.toLocaleString()}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </>
           )}
         </main>
       )}
