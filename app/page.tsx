@@ -116,11 +116,29 @@ export default function NandaTentHouse() {
     setRecentOrders(sortedOrders.slice(0, 5));
   };
 
+  // Safe localStorage wrapper
+  const safeLocalStorage = {
+    getItem: (key: string) => {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    },
+    setItem: (key: string, value: string) => {
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        // Ignore failures in environments where localStorage is unavailable
+      }
+    },
+  };
+
   // Cache management functions
   const loadFromCache = () => {
     try {
-      const cachedItems = localStorage.getItem('nandaTent_items');
-      const cachedOrders = localStorage.getItem('nandaTent_orders');
+      const cachedItems = safeLocalStorage.getItem('nandaTent_items');
+      const cachedOrders = safeLocalStorage.getItem('nandaTent_orders');
       if (cachedItems) {
         const itemsList = JSON.parse(cachedItems) as Item[];
         setItems(itemsList);
@@ -138,8 +156,8 @@ export default function NandaTentHouse() {
 
   const saveToCache = (items: Item[], orders: Order[]) => {
     try {
-      localStorage.setItem('nandaTent_items', JSON.stringify(items));
-      localStorage.setItem('nandaTent_orders', JSON.stringify(orders));
+      safeLocalStorage.setItem('nandaTent_items', JSON.stringify(items));
+      safeLocalStorage.setItem('nandaTent_orders', JSON.stringify(orders));
     } catch (error) {
       console.error('Error saving to cache:', error);
     }
