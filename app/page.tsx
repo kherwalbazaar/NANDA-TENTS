@@ -58,7 +58,7 @@ export default function NandaTentHouse() {
   const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showInstallPopup, setShowInstallPopup] = useState(false);
+  const [showInstallToast, setShowInstallToast] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
@@ -162,27 +162,44 @@ export default function NandaTentHouse() {
   }, [items, orders, dataLoading]);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      // Show install popup for Chrome browser
-      if (navigator.userAgent.includes('Chrome') && !navigator.userAgent.includes('Edg')) {
-        setShowInstallPopup(true);
-      }
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+    if (isStandalone) return;
+
+    const handleBeforeInstallPrompt = (e: Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> }) => {
+      // Only show for Chrome browsers (exclude Edge/Opera)
+      if (!navigator.userAgent.includes('Chrome') || navigator.userAgent.includes('Edg') || navigator.userAgent.includes('OPR')) {
+        return;
+      }
+
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallToast(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+    } else {
+      console.log('User dismissed the install prompt');
+    }
+
+    setShowInstallToast(false);
+    setDeferredPrompt(null);
+  };
 
   if (loading) {
     return (
@@ -198,22 +215,6 @@ export default function NandaTentHouse() {
   if (!user) {
     return null;
   }
-
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        console.log('User accepted the install prompt');
-      } else {
-        console.log('User dismissed the install prompt');
-      }
-      setDeferredPrompt(null);
-    } else {
-      // Fallback for browsers that don't support beforeinstallprompt
-      alert('To install this app, please use your browser\'s "Add to Home Screen" feature.');
-    }
-  };
 
   const handleNativeShare = async () => {
     const appUrl = window.location.origin;
@@ -540,6 +541,30 @@ export default function NandaTentHouse() {
         />
       )}
 
+      {/* Install prompt toast (Chrome only) */}
+      {showInstallToast && (
+        <div className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-xl bg-white border border-gray-200 shadow-lg p-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Download className="w-5 h-5 text-green-600" />
+            <div className="text-sm font-medium text-gray-800">Install NANDA TENT for faster access</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleInstallClick}
+              className="text-sm font-semibold text-green-600"
+            >
+              Install
+            </button>
+            <button
+              onClick={() => setShowInstallToast(false)}
+              className="text-sm text-gray-500"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <aside
         className={`fixed left-0 top-0 h-screen w-64 bg-white shadow-lg z-50 transform transition-transform duration-300 ease-in-out ${
@@ -547,13 +572,6 @@ export default function NandaTentHouse() {
         } pt-16`}
       >
         <nav className="flex flex-col p-4 space-y-2">
-          <button
-            onClick={handleInstallClick}
-            className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-green-50 rounded-lg transition-colors"
-          >
-            <Download className="w-5 h-5 text-green-600" />
-            <span className="font-medium">Download APK</span>
-          </button>
           <button
             onClick={closeSidebar}
             className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-50 text-gray-700 hover:text-green-600 transition w-full text-left"
@@ -605,16 +623,6 @@ export default function NandaTentHouse() {
           >
             <LogOut size={20} />
             <span className="font-medium">Logout</span>
-          </button>
-          <button
-            onClick={() => {
-              closeSidebar();
-              handleInstallClick();
-            }}
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-50 text-gray-700 hover:text-green-600 transition w-full text-left"
-          >
-            <Package size={20} />
-            <span className="font-medium">Download APK</span>
           </button>
         </nav>
       </aside>

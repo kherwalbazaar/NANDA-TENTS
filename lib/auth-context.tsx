@@ -12,13 +12,37 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const safeLocalStorage = {
+  getItem: (key: string) => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // Ignore failures in environments where localStorage is unavailable (e.g., iOS private mode)
+    }
+  },
+  removeItem: (key: string) => {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Ignore failures
+    }
+  },
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check localStorage for login state
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const isLoggedIn = safeLocalStorage.getItem('isLoggedIn') === 'true';
     if (isLoggedIn) {
       setUser({ email: 'demo@nandatent.com' });
     }
@@ -28,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     // Local password check
     if (password === '123456') {
-      localStorage.setItem('isLoggedIn', 'true');
+      safeLocalStorage.setItem('isLoggedIn', 'true');
       setUser({ email });
     } else {
       throw new Error('Invalid password');
@@ -41,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    localStorage.removeItem('isLoggedIn');
+    safeLocalStorage.removeItem('isLoggedIn');
     setUser(null);
   };
 
