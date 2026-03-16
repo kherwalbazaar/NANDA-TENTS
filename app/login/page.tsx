@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
 
 export default function LoginPage() {
 
@@ -12,23 +13,22 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   const router = useRouter()
+  const { signIn } = useAuth()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
-    setTimeout(() => {
-
-      if (password === "123456") {
-        router.push("/")
-      } else {
-        setError("Incorrect password")
-      }
-
+    try {
+      // Use fixed demo email since login is password-based.
+      await signIn("demo@nandatent.com", password)
+      router.push("/")
+    } catch (err) {
+      setError((err as Error)?.message ?? "Incorrect password")
+    } finally {
       setLoading(false)
-
-    }, 800)
+    }
   }
 
   return (
