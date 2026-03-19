@@ -378,13 +378,21 @@ export default function NandaTentHouse() {
   };
 
   const saveEditedItem = async () => {
-    if (!editingItemId || !editItemData) return;
+    if (!editingItemId || !editItemData) {
+      console.error('Missing editingItemId or editItemData');
+      Utils.showToast('Missing item data', 'error');
+      return;
+    }
 
     try {
       Utils.showLoading(true);
+      
+      console.log('Updating item:', editingItemId, editItemData);
+      
       await updateDoc(doc(db, 'items', editingItemId), {
         name: editItemData.name,
         price: editItemData.price,
+        costPrice: editItemData.costPrice,
         available: editItemData.available,
         unit: editItemData.unit,
         description: editItemData.description,
@@ -396,12 +404,14 @@ export default function NandaTentHouse() {
         item.id === editingItemId ? { ...item, ...editItemData } as Item : item
       ));
       
+      console.log('Item updated successfully');
       Utils.showToast('Item updated successfully', 'success');
       closeEditItem();
       setIsEditingItems(false);
     } catch (error) {
       console.error('Error updating item:', error);
-      Utils.showToast('Failed to update item', 'error');
+      console.error('Error details:', JSON.stringify(error));
+      Utils.showToast('Failed to update item: ' + (error as Error).message, 'error');
     } finally {
       Utils.showLoading(false);
     }
