@@ -110,6 +110,10 @@ export default function NandaTentHouse() {
   const [isEditingItems, setIsEditingItems] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editItemData, setEditItemData] = useState<Partial<Item> | null>(null);
+  
+  // Page view states
+  const [showAddItemPage, setShowAddItemPage] = useState(false);
+  const [showEditItemPage, setShowEditItemPage] = useState(false);
 
   // Calculate home page metrics
   const calculateMetrics = () => {
@@ -344,14 +348,15 @@ export default function NandaTentHouse() {
   };
 
   const openItemModal = () => {
-    setItemModalOpen(true);
+    setShowAddItemPage(true);
   };
 
   const closeItemModal = () => {
-    setItemModalOpen(false);
+    setShowAddItemPage(false);
     setNewItemName('');
     setNewItemCategory('Tents');
     setNewItemPrice('');
+    setNewItemCostPrice('');
     setNewItemUnit('Piece');
     setNewItemDescription('');
     setNewItemQuantity('');
@@ -361,11 +366,15 @@ export default function NandaTentHouse() {
   const openEditItem = (item: Item) => {
     setEditingItemId(item.id);
     setEditItemData({ ...item });
+    setShowEditItemPage(true);
   };
 
   const closeEditItem = () => {
-    setEditingItemId(null);
-    setEditItemData(null);
+    setShowEditItemPage(false);
+    setTimeout(() => {
+      setEditingItemId(null);
+      setEditItemData(null);
+    }, 100);
   };
 
   const saveEditedItem = async () => {
@@ -641,7 +650,9 @@ export default function NandaTentHouse() {
           <Menu size={24} />
         </button>
         <h1 className="text-lg font-bold text-center flex-1">
-          {activeTab === 'items' ? 'TENT ITEMS' : activeTab === 'orders' ? 'MY ALL ORDER' : 'NANDA TENT HOUSE'}
+          {showAddItemPage ? 'ADD NEW ITEM' : 
+           showEditItemPage ? 'EDIT ITEM' :
+           activeTab === 'items' ? 'TENT ITEMS' : activeTab === 'orders' ? 'MY ALL ORDER' : 'NANDA TENT HOUSE'}
         </h1>
         <div className="flex items-center space-x-2">
           {activeTab === 'billing' && (
@@ -1381,7 +1392,7 @@ export default function NandaTentHouse() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Selling Price (₹) *
+                    Rent Price (₹) *
                   </label>
                   <input
                     type="number"
@@ -1415,10 +1426,8 @@ export default function NandaTentHouse() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="Piece">Piece</option>
-                  <option value="Set">Set</option>
-                  <option value="Kg">Kg</option>
-                  <option value="Meter">Meter</option>
-                  <option value="Liter">Liter</option>
+                  <option value="Day">Day</option>
+                  <option value="Event">Event</option>
                 </select>
               </div>
 
