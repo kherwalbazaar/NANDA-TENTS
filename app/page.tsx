@@ -135,8 +135,11 @@ export default function NandaTentHouse() {
     const revenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
     setTotalRevenue(revenue);
 
-    // Total Investment - sum of (item price * available quantity) for all items
-    const investment = items.reduce((sum, item) => sum + (item.price * item.available), 0);
+    // Total Investment - sum of (item costPrice * available quantity) for all items
+    const investment = items.reduce((sum, item) => {
+      const costPrice = item.costPrice || 0;
+      return sum + (costPrice * item.available);
+    }, 0);
     setTotalInvestment(investment);
 
     // Recent Orders - latest 5 orders sorted by createdAt
@@ -341,7 +344,6 @@ export default function NandaTentHouse() {
 
   const openItemModal = () => {
     console.log('Opening add item page...');
-    alert('Add Items button clicked! Opening form...');
     setShowAddItemPage(true);
   };
 
@@ -400,13 +402,13 @@ export default function NandaTentHouse() {
       ));
       
       console.log('Item updated successfully');
-      Utils.showToast('Item updated successfully', 'success');
+      Utils.showToast('✅ Item updated successfully!', 'success');
       closeEditItem();
       setIsEditingItems(false);
     } catch (error) {
       console.error('Error updating item:', error);
       console.error('Error details:', JSON.stringify(error));
-      Utils.showToast('Failed to update item: ' + (error as Error).message, 'error');
+      Utils.showToast('❌ Failed to update item: ' + (error as Error).message, 'error');
     } finally {
       Utils.showLoading(false);
     }
@@ -449,13 +451,13 @@ export default function NandaTentHouse() {
       setItems([...items, newItem]);
       
       console.log('Item saved successfully!');
-      Utils.showToast('Item added successfully!', 'success');
+      Utils.showToast('✅ Item added successfully!', 'success');
 
       // Reset form
       closeItemModal();
     } catch (error) {
       console.error('Error adding item:', error);
-      Utils.showToast('Error adding item: ' + (error as Error).message, 'error');
+      Utils.showToast('❌ Error adding item: ' + (error as Error).message, 'error');
     } finally {
       Utils.showLoading(false);
     }
@@ -470,6 +472,8 @@ export default function NandaTentHouse() {
       }, 0);
 
       try {
+        Utils.showLoading(true);
+        
         const newOrder = {
           id: Date.now().toString(),
           customerName: newOrderCustomer,
@@ -489,18 +493,24 @@ export default function NandaTentHouse() {
 
         // Update local state
         setOrders([...orders, newOrder]);
+        
+        console.log('Order created successfully!');
+        Utils.showToast('✅ Order created successfully!', 'success');
         closeAddOrderModal();
-
-        alert('Order added successfully!');
       } catch (error) {
         console.error('Error adding order:', error);
-        alert('Error adding order. Please try again.');
+        Utils.showToast('❌ Error creating order: ' + (error as Error).message, 'error');
+      } finally {
+        Utils.showLoading(false);
       }
+    } else {
+      Utils.showToast('Please fill all required fields', 'warning');
     }
   };
 
   const updateOrder = async () => {
     if (!editingOrderId || !newOrderCustomer || !newOrderPhone || !newOrderDate || newOrderItems.length === 0) {
+      Utils.showToast('Please fill all required fields', 'warning');
       return;
     }
 
@@ -511,6 +521,8 @@ export default function NandaTentHouse() {
     }, 0);
 
     try {
+      Utils.showLoading(true);
+      
       const updatedOrder = {
         customerName: newOrderCustomer,
         phone: newOrderPhone,
@@ -533,13 +545,15 @@ export default function NandaTentHouse() {
           ? { ...order, ...updatedOrder }
           : order
       ));
-
+      
+      console.log('Order updated successfully!');
+      Utils.showToast('✅ Order updated successfully!', 'success');
       closeAddOrderModal();
-
-      alert('Order updated successfully!');
     } catch (error) {
       console.error('Error updating order:', error);
-      alert('Error updating order. Please try again.');
+      Utils.showToast('❌ Error updating order: ' + (error as Error).message, 'error');
+    } finally {
+      Utils.showLoading(false);
     }
   };
 
@@ -917,12 +931,12 @@ export default function NandaTentHouse() {
               <p className="text-3xl font-bold text-green-600">{totalItems}</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
-              <p className="text-gray-600 text-sm font-medium mb-2">Today's Orders</p>
-              <p className="text-3xl font-bold text-green-600">{todaysOrders}</p>
+              <p className="text-gray-600 text-sm font-medium mb-2">Total Invest</p>
+              <p className="text-3xl font-bold text-green-600">₹{totalInvestment.toLocaleString()}</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
-              <p className="text-gray-600 text-sm font-medium mb-2">Customers</p>
-              <p className="text-3xl font-bold text-green-600">{totalCustomers}</p>
+              <p className="text-gray-600 text-sm font-medium mb-2">Total Orders</p>
+              <p className="text-3xl font-bold text-green-600">{orders.length}</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
               <p className="text-gray-600 text-sm font-medium mb-2">Total Revenue</p>
