@@ -7,6 +7,23 @@ import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore'
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
 
+// Inline utility functions
+const Utils = {
+  showToast: (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
+    // Simple console log for now - can be enhanced with toast library
+    console.log(`[${type.toUpperCase()}] ${message}`);
+    alert(`${type.toUpperCase()}: ${message}`);
+  },
+  showLoading: (isLoading: boolean) => {
+    // Can be enhanced with loading spinner
+    if (isLoading) {
+      document.body.style.cursor = 'wait';
+    } else {
+      document.body.style.cursor = 'default';
+    }
+  }
+};
+
 interface OrderItem {
   id: string;
   name: string;
@@ -19,6 +36,7 @@ interface Item {
   name: string;
   category: string;
   price: number;
+  costPrice?: number; // Cost price for profit calculation
   unit: string;
   description: string;
   available: number;
@@ -54,6 +72,7 @@ export default function NandaTentHouse() {
   const [newItemName, setNewItemName] = useState('');
   const [newItemCategory, setNewItemCategory] = useState('Tents');
   const [newItemPrice, setNewItemPrice] = useState('');
+  const [newItemCostPrice, setNewItemCostPrice] = useState('');
   const [newItemUnit, setNewItemUnit] = useState('Piece');
   const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('');
@@ -391,6 +410,7 @@ export default function NandaTentHouse() {
         name: newItemName,
         category: newItemCategory,
         price: parseInt(newItemPrice),
+        costPrice: newItemCostPrice ? parseFloat(newItemCostPrice) : undefined,
         unit: newItemUnit,
         description: newItemDescription || '',
         available: parseInt(newItemQuantity),
@@ -409,6 +429,7 @@ export default function NandaTentHouse() {
       setNewItemName('');
       setNewItemCategory('Tents');
       setNewItemPrice('');
+      setNewItemCostPrice('');
       setNewItemUnit('Piece');
       setNewItemDescription('');
       setNewItemQuantity('');
@@ -633,7 +654,7 @@ export default function NandaTentHouse() {
               {isEditingItems ? <Save size={20} /> : <Edit size={20} />}
             </button>
           )}
-          {!isEditingItems && (
+          {activeTab === 'home' && (
             <button
               onClick={handleNativeShare}
               className="p-2 hover:bg-green-700 rounded"
@@ -1148,6 +1169,16 @@ export default function NandaTentHouse() {
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">କ୍ରୟ ମୂଲ୍ୟ (₹) - Cost Price</label>
+                <input
+                  type="number"
+                  value={newItemCostPrice}
+                  onChange={(e) => setNewItemCostPrice(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="କ୍ରୟ ମୂଲ୍ୟ ଲେଖନ୍ତୁ"
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">ପରିମାଣ</label>
                 <input
                   type="number"
@@ -1338,7 +1369,19 @@ export default function NandaTentHouse() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price (₹) *
+                    Cost Price (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    value={editItemData.costPrice || ''}
+                    onChange={(e) => setEditItemData({ ...editItemData, costPrice: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Selling Price (₹) *
                   </label>
                   <input
                     type="number"
