@@ -341,6 +341,7 @@ export default function NandaTentHouse() {
 
   const openItemModal = () => {
     console.log('Opening add item page...');
+    alert('Add Items button clicked! Opening form...');
     setShowAddItemPage(true);
   };
 
@@ -711,6 +712,198 @@ export default function NandaTentHouse() {
             >
               Dismiss
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add Item Page - Full Screen */}
+      {showAddItemPage && (
+        <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col">
+          {/* Header */}
+          <div className="bg-green-600 text-white px-4 py-3 flex items-center justify-between shadow-md">
+            <button
+              onClick={closeItemModal}
+              className="p-2 hover:bg-green-700 rounded-full"
+              aria-label="Go back"
+            >
+              <Menu size={24} className="rotate-45" />
+            </button>
+            <h1 className="text-lg font-bold">ADD NEW ITEM</h1>
+            <div className="w-10"></div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="max-w-md mx-auto space-y-4">
+              <div className="bg-white rounded-lg shadow-sm p-4">
+                <h2 className="text-lg font-bold text-gray-800 mb-4">ନୂଆ ଦ୍ରବ୍ୟ ଯୋଗ କରନ୍ତୁ</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ଦ୍ରବ୍ୟର ନାମ</label>
+                    <input
+                      type="text"
+                      value={newItemName}
+                      onChange={(e) => setNewItemName(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="ଦ୍ରବ୍ୟର ନାମ ଲେଖନ୍ତୁ"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ଦୈନିକ ମୂଲ୍ୟ (₹)</label>
+                    <input
+                      type="number"
+                      value={newItemPrice}
+                      onChange={(e) => setNewItemPrice(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="ମୂଲ୍ୟ ଲେଖନ୍ତୁ"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">କ୍ରୟ ମୂଲ୍ୟ (₹) - Cost Price</label>
+                    <input
+                      type="number"
+                      value={newItemCostPrice}
+                      onChange={(e) => setNewItemCostPrice(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="କ୍ରୟ ମୂଲ୍ୟ ଲେଖନ୍ତୁ"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ପରିମାଣ</label>
+                    <input
+                      type="number"
+                      value={newItemQuantity}
+                      onChange={(e) => setNewItemQuantity(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="ପରିମାଣ ଲେଖନ୍ତୁ"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    onClick={closeItemModal}
+                    className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    ବାତିଲ୍
+                  </button>
+                  <button
+                    onClick={submitNewItem}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    disabled={!newItemName || !newItemPrice || !newItemQuantity}
+                  >
+                    ଯୋଗ କରନ୍ତୁ
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Item Page - Full Screen */}
+      {showEditItemPage && editingItemId && editItemData && (
+        <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col">
+          {/* Header */}
+          <div className="bg-green-600 text-white px-4 py-3 flex items-center justify-between shadow-md">
+            <button
+              onClick={closeEditItem}
+              className="p-2 hover:bg-green-700 rounded-full"
+              aria-label="Go back"
+            >
+              <Menu size={24} className="rotate-45" />
+            </button>
+            <h1 className="text-lg font-bold">EDIT ITEM</h1>
+            <div className="w-10"></div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="max-w-md mx-auto space-y-4">
+              <div className="bg-white rounded-lg shadow-sm p-4">
+                <h2 className="text-lg font-bold text-gray-800 mb-4">Edit Item Details</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Item Name *</label>
+                    <input
+                      type="text"
+                      value={editItemData.name || ''}
+                      onChange={(e) => setEditItemData({ ...editItemData, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="Enter item name"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Cost Price (₹) *</label>
+                      <input
+                        type="number"
+                        value={editItemData.costPrice || ''}
+                        onChange={(e) => setEditItemData({ ...editItemData, costPrice: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Rent Price (₹) *</label>
+                      <input
+                        type="number"
+                        value={editItemData.price || ''}
+                        onChange={(e) => setEditItemData({ ...editItemData, price: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Available Stock *</label>
+                      <input
+                        type="number"
+                        value={editItemData.available || ''}
+                        onChange={(e) => setEditItemData({ ...editItemData, available: parseInt(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Unit *</label>
+                    <select
+                      value={editItemData.unit || 'Piece'}
+                      onChange={(e) => setEditItemData({ ...editItemData, unit: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="Piece">Piece</option>
+                      <option value="Day">Day</option>
+                      <option value="Event">Event</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea
+                      value={editItemData.description || ''}
+                      onChange={(e) => setEditItemData({ ...editItemData, description: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      rows={3}
+                      placeholder="Item description"
+                    />
+                  </div>
+                </div>
+                <div className="flex space-x-3 pt-4 mt-4 border-t">
+                  <button
+                    onClick={closeEditItem}
+                    className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveEditedItem}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center gap-2"
+                  >
+                    <Save size={18} />
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
