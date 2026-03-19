@@ -44,7 +44,7 @@ interface Order {
 }
 
 export default function NandaTentHouse() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -68,6 +68,7 @@ export default function NandaTentHouse() {
   const [todaysOrders, setTodaysOrders] = useState(0);
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalInvestment, setTotalInvestment] = useState(0);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -106,6 +107,10 @@ export default function NandaTentHouse() {
     // Total Revenue - sum of all order totalAmount
     const revenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
     setTotalRevenue(revenue);
+
+    // Total Investment - sum of (item price * available quantity) for all items
+    const investment = items.reduce((sum, item) => sum + (item.price * item.available), 0);
+    setTotalInvestment(investment);
 
     // Recent Orders - latest 5 orders sorted by createdAt
     const sortedOrders = [...orders].sort((a, b) => {
@@ -658,7 +663,7 @@ export default function NandaTentHouse() {
             className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-50 text-gray-700 hover:text-green-600 transition w-full text-left"
           >
             <DollarSign size={20} />
-            <span className="font-medium">Billing</span>
+            <span className="font-medium">Admin</span>
           </button>
           <button
             onClick={closeSidebar}
@@ -802,29 +807,23 @@ export default function NandaTentHouse() {
         </main>
       )}
 
-      {/* Billing Tab Content */}
+      {/* Admin Tab Content */}
       {activeTab === 'billing' && (
         <main className="flex-1 overflow-y-auto pt-16 px-2">
           <div className="mt-4">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Billing</h2>
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-white rounded-lg shadow-sm p-4 text-center">
-                <p className="text-gray-600 text-sm mb-1">This Month</p>
-                <p className="text-2xl font-bold text-green-600">₹45K</p>
+                <p className="text-gray-600 text-sm mb-1">Total Earning</p>
+                <p className="text-2xl font-bold text-green-600">₹{totalRevenue.toLocaleString('en-IN')}</p>
               </div>
               <div className="bg-white rounded-lg shadow-sm p-4 text-center">
-                <p className="text-gray-600 text-sm mb-1">This Year</p>
-                <p className="text-2xl font-bold text-green-600">₹5.2L</p>
+                <p className="text-gray-600 text-sm mb-1">Total Invest</p>
+                <p className="text-2xl font-bold text-green-600">₹{totalInvestment.toLocaleString('en-IN')}</p>
               </div>
             </div>
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <h3 className="font-semibold text-gray-900 p-4 border-b">Recent Transactions</h3>
-              {[
-                { date: '13 Mar 2026', amount: '₹3500', type: 'Payment Received' },
-                { date: '12 Mar 2026', amount: '₹2800', type: 'Payment Received' },
-                { date: '11 Mar 2026', amount: '₹4200', type: 'Payment Received' },
-                { date: '10 Mar 2026', amount: '₹1500', type: 'Payment Received' },
-              ].map((transaction, index, array) => (
+              <h3 className="font-semibold text-gray-900 p-4 border-b">All Items</h3>
+              {items.map((item, index, array) => (
                 <div
                   key={index}
                   className={`flex justify-between items-center px-4 py-3 ${
@@ -832,10 +831,10 @@ export default function NandaTentHouse() {
                   }`}
                 >
                   <div>
-                    <p className="text-gray-700 font-medium">{transaction.type}</p>
-                    <p className="text-gray-500 text-sm">{transaction.date}</p>
+                    <p className="text-gray-700 font-medium">{item.name}</p>
+                    <p className="text-gray-500 text-sm">Cost: ₹{item.price} | Stock: {item.available} {item.unit}</p>
                   </div>
-                  <span className="text-green-600 font-semibold">{transaction.amount}</span>
+                  <span className="text-green-600 font-semibold">₹{item.price * item.available}</span>
                 </div>
               ))}
             </div>
@@ -1265,7 +1264,7 @@ export default function NandaTentHouse() {
           }`}
         >
           <DollarSign size={24} />
-          <span className="text-xs mt-1 font-medium">Billing</span>
+          <span className="text-xs mt-1 font-medium">Admin</span>
         </button>
       </nav>
     </div>
