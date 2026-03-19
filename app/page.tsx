@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, User, Home, Package, ClipboardList, DollarSign, Plus, ChevronRight, Phone, Share2, Download, LogOut } from 'lucide-react';
+import { Menu, User, Home, Package, ClipboardList, DollarSign, Plus, ChevronRight, Phone, Share2, Download, LogOut, Edit, X, Save } from 'lucide-react';
 import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
@@ -86,6 +86,11 @@ export default function NandaTentHouse() {
   const [newOrderAdvance, setNewOrderAdvance] = useState('');
   const [newOrderNotes, setNewOrderNotes] = useState('');
   const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
+
+  // Admin section states
+  const [isEditingItems, setIsEditingItems] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editItemData, setEditItemData] = useState<Partial<Item> | null>(null);
 
   // Calculate home page metrics
   const calculateMetrics = () => {
@@ -333,6 +338,47 @@ export default function NandaTentHouse() {
     setNewItemQuantity('');
   };
 
+  // Edit item functions
+  const openEditItem = (item: Item) => {
+    setEditingItemId(item.id);
+    setEditItemData({ ...item });
+  };
+
+  const closeEditItem = () => {
+    setEditingItemId(null);
+    setEditItemData(null);
+  };
+
+  const saveEditedItem = async () => {
+    if (!editingItemId || !editItemData) return;
+
+    try {
+      Utils.showLoading(true);
+      await updateDoc(doc(db, 'items', editingItemId), {
+        name: editItemData.name,
+        price: editItemData.price,
+        available: editItemData.available,
+        unit: editItemData.unit,
+        description: editItemData.description,
+        updated_at: new Date()
+      });
+      
+      // Update local state
+      setItems(items.map(item => 
+        item.id === editingItemId ? { ...item, ...editItemData } as Item : item
+      ));
+      
+      Utils.showToast('Item updated successfully', 'success');
+      closeEditItem();
+      setIsEditingItems(false);
+    } catch (error) {
+      console.error('Error updating item:', error);
+      Utils.showToast('Failed to update item', 'error');
+    } finally {
+      Utils.showLoading(false);
+    }
+  };
+
   const submitNewItem = async () => {
     if (!newItemName || !newItemPrice || !newItemQuantity) {
       alert('Please fill in all required fields');
@@ -577,14 +623,26 @@ export default function NandaTentHouse() {
           {activeTab === 'items' ? 'TENT ITEMS' : activeTab === 'orders' ? 'MY ALL ORDER' : 'NANDA TENT HOUSE'}
         </h1>
         <div className="flex items-center space-x-2">
-          <button
-            onClick={handleNativeShare}
-            className="p-2 hover:bg-green-700 rounded"
-            aria-label="Share app"
-            title="Share NANDA TENT"
-          >
-            <Share2 size={20} />
-          </button>
+          {activeTab === 'billing' && (
+            <button
+              onClick={() => setIsEditingItems(!isEditingItems)}
+              className={`p-2 rounded ${isEditingItems ? 'bg-white text-green-600' : 'hover:bg-green-700 text-white'}`}
+              aria-label="Edit items"
+              title={isEditingItems ? "Done editing" : "Edit all items"}
+            >
+              {isEditingItems ? <Save size={20} /> : <Edit size={20} />}
+            </button>
+          )}
+          {!isEditingItems && (
+            <button
+              onClick={handleNativeShare}
+              className="p-2 hover:bg-green-700 rounded"
+              aria-label="Share app"
+              title="Share NANDA TENT"
+            >
+              <Share2 size={20} />
+            </button>
+          )}
           {(activeTab === 'home' || activeTab === 'items' || activeTab === 'orders') && (
             <button
               onClick={activeTab === 'items' ? openItemModal : openAddOrderModal}
@@ -822,19 +880,38 @@ export default function NandaTentHouse() {
               </div>
             </div>
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <h3 className="font-semibold text-gray-900 p-4 border-b">All Items</h3>
+              <h3 className="font-semibold text-gray-900 p-4 border-b flex justify-between items-center">
+                <span>All Items</span>
+                {isEditingItems && (
+                  <span className="text-sm text-green-600 font-medium">Tap an item to edit</span>
+                )}
+              </h3>
               {items.map((item, index, array) => (
                 <div
                   key={index}
                   className={`flex justify-between items-center px-4 py-3 ${
                     index !== array.length - 1 ? 'border-b border-gray-200' : ''
-                  }`}
+                  } ${isEditingItems ? 'cursor-pointer hover:bg-green-50' : ''}`}
+                  onClick={() => isEditingItems && openEditItem(item)}
                 >
                   <div>
                     <p className="text-gray-700 font-medium">{item.name}</p>
                     <p className="text-gray-500 text-sm">Cost: ₹{item.price} | Stock: {item.available} {item.unit}</p>
                   </div>
-                  <span className="text-green-600 font-semibold">₹{item.price * item.available}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-600 font-semibold">₹{item.price * item.available}</span>
+                    {isEditingItems && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditItem(item);
+                        }}
+                        className="p-1 hover:bg-green-100 rounded"
+                      >
+                        <Edit size={16} className="text-green-600" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1229,6 +1306,112 @@ export default function NandaTentHouse() {
           </div>
         </div>
       )}
+
+      {/* Edit Item Modal */}
+      {editingItemId && editItemData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-md max-h-[90vh] overflow-y-auto border border-gray-300">
+            <div className="bg-green-600 text-white px-6 py-4 rounded-t-lg -m-6 mb-4 relative flex justify-between items-center">
+              <h3 className="text-lg font-bold">Edit Item</h3>
+              <button
+                onClick={closeEditItem}
+                className="text-white hover:text-gray-200"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Item Name *
+                </label>
+                <input
+                  type="text"
+                  value={editItemData.name || ''}
+                  onChange={(e) => setEditItemData({ ...editItemData, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="Enter item name"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Price (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    value={editItemData.price || ''}
+                    onChange={(e) => setEditItemData({ ...editItemData, price: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Available Stock *
+                  </label>
+                  <input
+                    type="number"
+                    value={editItemData.available || ''}
+                    onChange={(e) => setEditItemData({ ...editItemData, available: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Unit *
+                </label>
+                <select
+                  value={editItemData.unit || 'Piece'}
+                  onChange={(e) => setEditItemData({ ...editItemData, unit: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="Piece">Piece</option>
+                  <option value="Set">Set</option>
+                  <option value="Kg">Kg</option>
+                  <option value="Meter">Meter</option>
+                  <option value="Liter">Liter</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={editItemData.description || ''}
+                  onChange={(e) => setEditItemData({ ...editItemData, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  rows={3}
+                  placeholder="Item description"
+                />
+              </div>
+            </div>
+
+            <div className="flex space-x-3 pt-4 mt-4 border-t">
+              <button
+                onClick={closeEditItem}
+                className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveEditedItem}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center gap-2"
+              >
+                <Save size={18} />
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center py-2 max-w-md mx-auto w-full">
         <button
           onClick={() => changeTab('home')}
