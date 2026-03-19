@@ -348,10 +348,12 @@ export default function NandaTentHouse() {
   };
 
   const openItemModal = () => {
+    console.log('Opening add item page...');
     setShowAddItemPage(true);
   };
 
   const closeItemModal = () => {
+    console.log('Closing add item page...');
     setShowAddItemPage(false);
     setNewItemName('');
     setNewItemCategory('Tents');
