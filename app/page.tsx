@@ -65,7 +65,6 @@ export default function NandaTentHouse() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
   const [itemsModalOpen, setItemsModalOpen] = useState(false);
   const [itemModalOpen, setItemModalOpen] = useState(false);
@@ -330,13 +329,6 @@ export default function NandaTentHouse() {
     }
   };
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const closeSidebar = () => {
-    setSidebarOpen(false);
-  };
 
   const closeItemsModal = () => {
     setItemsModalOpen(false);
@@ -659,13 +651,7 @@ export default function NandaTentHouse() {
     <div className="flex flex-col h-screen bg-gray-50 w-full max-w-md mx-auto relative">
       {/* Top Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-green-600 text-white px-4 py-3 flex items-center justify-between max-w-md mx-auto w-full">
-        <button
-          onClick={toggleSidebar}
-          className="p-2 hover:bg-green-700 rounded"
-          aria-label="Toggle menu"
-        >
-          <Menu size={24} />
-        </button>
+        <div className="w-10"></div>
         <h1 className="text-lg font-bold text-center flex-1">
           {showAddItemPage ? 'ADD NEW ITEM' : 
            showEditItemPage ? 'EDIT ITEM' :
@@ -705,14 +691,6 @@ export default function NandaTentHouse() {
         </div>
       </nav>
 
-      {/* Sidebar Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={closeSidebar}
-        />
-      )}
-
       {/* Install prompt toast (Chrome only) */}
       {showInstallToast && (
         <div className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-xl bg-white border border-gray-200 shadow-lg p-4 flex items-center justify-between gap-3">
@@ -736,68 +714,6 @@ export default function NandaTentHouse() {
           </div>
         </div>
       )}
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed left-0 top-0 h-screen w-64 bg-white shadow-lg z-50 transform transition-transform duration-300 ease-in-out ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } pt-16`}
-      >
-        <nav className="flex flex-col p-4 space-y-2">
-          <button
-            onClick={closeSidebar}
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-50 text-gray-700 hover:text-green-600 transition w-full text-left"
-          >
-            <Home size={20} />
-            <span className="font-medium">Dashboard</span>
-          </button>
-          <button
-            onClick={closeSidebar}
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-50 text-gray-700 hover:text-green-600 transition w-full text-left"
-          >
-            <Package size={20} />
-            <span className="font-medium">Tent Items</span>
-          </button>
-          <button
-            onClick={closeSidebar}
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-50 text-gray-700 hover:text-green-600 transition w-full text-left"
-          >
-            <ClipboardList size={20} />
-            <span className="font-medium">Orders</span>
-          </button>
-          <button
-            onClick={closeSidebar}
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-50 text-gray-700 hover:text-green-600 transition w-full text-left"
-          >
-            <DollarSign size={20} />
-            <span className="font-medium">Admin</span>
-          </button>
-          <button
-            onClick={closeSidebar}
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-50 text-gray-700 hover:text-green-600 transition w-full text-left"
-          >
-            <User size={20} />
-            <span className="font-medium">Customers</span>
-          </button>
-          <button
-            onClick={closeSidebar}
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-50 text-gray-700 hover:text-green-600 transition w-full text-left"
-          >
-            <Menu size={20} />
-            <span className="font-medium">Settings</span>
-          </button>
-          <button
-            onClick={() => {
-              closeSidebar();
-              handleLogout();
-            }}
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-red-50 text-gray-700 hover:text-red-600 transition w-full text-left"
-          >
-            <LogOut size={20} />
-            <span className="font-medium">Logout</span>
-          </button>
-        </nav>
-      </aside>
 
       {/* Home Tab Content */}
       {activeTab === 'home' && (
