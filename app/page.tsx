@@ -424,8 +424,9 @@ export default function NandaTentHouse() {
     }
 
     try {
-      const newItem: Item = {
-        id: Date.now().toString(),
+      Utils.showLoading(true);
+      
+      const newItemData = {
         name: newItemName,
         category: newItemCategory,
         price: parseInt(newItemPrice),
@@ -438,26 +439,30 @@ export default function NandaTentHouse() {
         createdAt: new Date()
       };
 
-      // Add to Firestore
-      await addDoc(collection(db, 'items'), newItem);
+      // Add to Firestore and get the generated ID
+      const docRef = await addDoc(collection(db, 'items'), newItemData);
+      
+      console.log('Item added with ID:', docRef.id);
+      
+      // Create item with Firebase-generated ID
+      const newItem: Item = {
+        id: docRef.id,
+        ...newItemData
+      };
 
       // Update local state
       setItems([...items, newItem]);
+      
+      console.log('Item saved successfully!');
+      Utils.showToast('Item added successfully!', 'success');
 
       // Reset form
-      setNewItemName('');
-      setNewItemCategory('Tents');
-      setNewItemPrice('');
-      setNewItemCostPrice('');
-      setNewItemUnit('Piece');
-      setNewItemDescription('');
-      setNewItemQuantity('');
-      setItemModalOpen(false);
-
-      alert('Item added successfully!');
+      closeItemModal();
     } catch (error) {
       console.error('Error adding item:', error);
-      alert('Error adding item. Please try again.');
+      Utils.showToast('Error adding item: ' + (error as Error).message, 'error');
+    } finally {
+      Utils.showLoading(false);
     }
   };
 
