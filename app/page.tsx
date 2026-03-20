@@ -117,6 +117,37 @@ export default function NandaTentHouse() {
   const [showAddItemPage, setShowAddItemPage] = useState(false);
   const [showEditItemPage, setShowEditItemPage] = useState(false);
 
+  // Admin password protection
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Password verification function
+  const verifyAdminPassword = () => {
+    if (adminPassword === '2580') {
+      setIsAuthenticated(true);
+      setShowPasswordModal(false);
+      setAdminPassword('');
+      Utils.showToast('Admin access granted!', 'success');
+      // Auto-activate edit mode after successful password entry
+      setTimeout(() => {
+        setIsEditingItems(true);
+      }, 100);
+    } else {
+      Utils.showToast('Incorrect password!', 'error');
+      setAdminPassword('');
+    }
+  };
+
+  // Handle admin edit button click
+  const handleAdminEditClick = () => {
+    if (!isAuthenticated) {
+      setShowPasswordModal(true);
+    } else {
+      setIsEditingItems(!isEditingItems);
+    }
+  };
+
   // Calculate home page metrics
   const calculateMetrics = () => {
     // Total Items
@@ -777,12 +808,12 @@ export default function NandaTentHouse() {
         <div className="flex items-center space-x-2">
           {activeTab === 'billing' && (
             <button
-              onClick={() => setIsEditingItems(!isEditingItems)}
-              className={`p-2 rounded ${isEditingItems ? 'bg-white text-green-600' : 'hover:bg-green-700 text-white'}`}
+              onClick={handleAdminEditClick}
+              className={`p-2 rounded ${isAuthenticated && isEditingItems ? 'bg-white text-green-600' : 'hover:bg-green-700 text-white'}`}
               aria-label="Edit items"
-              title={isEditingItems ? "Done editing" : "Edit all items"}
+              title={isAuthenticated && isEditingItems ? "Done editing" : "Edit all items"}
             >
-              {isEditingItems ? <Save size={20} /> : <Edit size={20} />}
+              {isAuthenticated && isEditingItems ? <Save size={20} /> : <Edit size={20} />}
             </button>
           )}
           {activeTab === 'home' && (
@@ -875,13 +906,14 @@ export default function NandaTentHouse() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">କ୍ରୟ ମୂଲ୍ୟ (₹) - Cost Price</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">କ୍ରଟ ମୂଲ୍ଟ (₹) - Cost Price</label>
                     <input
                       type="number"
                       value={newItemCostPrice}
                       onChange={(e) => setNewItemCostPrice(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="କ୍ରୟ ମୂଲ୍ୟ ଲେଖନ୍ତୁ"
+                      placeholder="କ୍ରଟ ମୂଲ୍ଟ ଲେଖନ୍ତୁ"
+                      title="Cost price"
                     />
                   </div>
                   <div>
@@ -892,6 +924,7 @@ export default function NandaTentHouse() {
                       onChange={(e) => setNewItemQuantity(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                       placeholder="ପରିମାଣ ଲେଖନ୍ତୁ"
+                      title="Available quantity"
                     />
                   </div>
                 </div>
@@ -899,6 +932,7 @@ export default function NandaTentHouse() {
                   <button
                     onClick={closeItemModal}
                     className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                    title="Cancel"
                   >
                     ବାତିଲ୍
                   </button>
@@ -986,6 +1020,7 @@ export default function NandaTentHouse() {
                       value={editItemData.unit || 'Piece'}
                       onChange={(e) => setEditItemData({ ...editItemData, unit: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      title="Select unit"
                     >
                       <option value="Piece">Piece</option>
                       <option value="Day">Day</option>
@@ -1163,21 +1198,21 @@ export default function NandaTentHouse() {
               {items.map((item, index, array) => (
                 <div
                   key={index}
-                  className={`px-4 py-4 ${
+                  className={`px-4 py-2 ${
                     index !== array.length - 1 ? 'border-b border-gray-200' : ''
                   } ${isEditingItems ? 'cursor-pointer hover:bg-green-50' : ''}`}
                   onClick={() => isEditingItems && openEditItem(item)}
                 >
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-center">
                     <div className="flex-1">
-                      <p className="text-gray-800 font-bold text-lg mb-2">{item.name}</p>
-                      <p className="text-gray-600 text-sm mb-1">Cost: ₹{item.costPrice || 0} | Stock: {item.available}</p>
+                      <p className="text-gray-800 font-bold text-base mb-1">{item.name}</p>
+                      <p className="text-gray-600 text-xs mb-1">Cost: ₹{item.costPrice || 0} | Stock: {item.available}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex items-baseline">
-                        <span className="text-green-600 font-bold text-lg">₹{item.price}</span>
-                        <span className="text-green-500 text-sm font-medium">/</span>
-                        <span className="text-gray-500 text-sm">{item.unit.toLowerCase()}</span>
+                        <span className="text-green-600 font-bold text-base">₹{item.price}</span>
+                        <span className="text-green-500 text-xs font-medium">/</span>
+                        <span className="text-gray-500 text-xs">{item.unit.toLowerCase()}</span>
                       </div>
                       {isEditingItems && (
                         <button
@@ -1701,6 +1736,7 @@ export default function NandaTentHouse() {
                   value={editItemData.unit || 'Piece'}
                   onChange={(e) => setEditItemData({ ...editItemData, unit: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  title="Select unit"
                 >
                   <option value="Piece">Piece</option>
                   <option value="Day">Day</option>
@@ -1779,6 +1815,49 @@ export default function NandaTentHouse() {
           <span className="text-xs mt-1 font-medium">Admin</span>
         </button>
       </nav>
+
+      {/* Admin Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-sm">
+            <div className="bg-green-600 text-white px-6 py-4 rounded-t-lg -m-6 mb-4 relative">
+              <h2 className="text-xl font-bold text-center">Admin Access Required</h2>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Enter Admin Password</label>
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="Enter password to edit items"
+                  autoFocus
+                />
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setAdminPassword('');
+                  }}
+                  className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={verifyAdminPassword}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                >
+                  Verify
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
