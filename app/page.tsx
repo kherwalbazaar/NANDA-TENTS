@@ -1174,7 +1174,11 @@ export default function NandaTentHouse() {
                       <p className="text-gray-600 text-sm mb-1">Cost: ₹{item.costPrice || 0} | Stock: {item.available}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-green-600 font-bold text-lg">₹{item.price}</span>
+                      <div className="flex items-baseline">
+                        <span className="text-green-600 font-bold text-lg">₹{item.price}</span>
+                        <span className="text-green-500 text-sm font-medium">/</span>
+                        <span className="text-gray-500 text-sm">{item.unit.toLowerCase()}</span>
+                      </div>
                       {isEditingItems && (
                         <button
                           onClick={(e) => {
