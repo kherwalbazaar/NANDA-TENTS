@@ -6,6 +6,7 @@ import { Menu, User, Home, Package, ClipboardList, DollarSign, Plus, ChevronRigh
 import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
+import html2canvas from 'html2canvas';
 
 // Inline utility functions
 const Utils = {
@@ -52,6 +53,7 @@ interface Order {
   address: string;
   email?: string;
   eventDate: string;
+  eventType?: string;
   items: OrderItem[];
   totalAmount: number;
   advancePayment: number;
@@ -100,6 +102,7 @@ export default function NandaTentHouse() {
   const [newOrderAddress, setNewOrderAddress] = useState('');
   const [newOrderEmail, setNewOrderEmail] = useState('');
   const [newOrderDate, setNewOrderDate] = useState('');
+  const [newOrderEventType, setNewOrderEventType] = useState('');
   const [newOrderItems, setNewOrderItems] = useState<Array<{id: string, name: string, quantity: number, price: string}>>([]);
   const [newOrderAdvance, setNewOrderAdvance] = useState('');
   const [newOrderNotes, setNewOrderNotes] = useState('');
@@ -480,6 +483,7 @@ export default function NandaTentHouse() {
           phone: newOrderPhone,
           address: newOrderAddress,
           eventDate: newOrderDate,
+          eventType: newOrderEventType || '',
           items: newOrderItems,
           advancePayment: parseInt(newOrderAdvance) || 0,
           totalAmount: totalAmount,
@@ -528,6 +532,7 @@ export default function NandaTentHouse() {
         phone: newOrderPhone,
         address: newOrderAddress,
         eventDate: newOrderDate,
+        eventType: newOrderEventType || '',
         items: newOrderItems,
         advancePayment: parseInt(newOrderAdvance) || 0,
         totalAmount: totalAmount,
@@ -621,6 +626,7 @@ export default function NandaTentHouse() {
     setNewOrderPhone(order.phone);
     setNewOrderAddress(order.address || '');
     setNewOrderDate(order.eventDate);
+    setNewOrderEventType(order.eventType || '');
     setNewOrderItems(order.items);
     setNewOrderAdvance(order.advancePayment?.toString() || '');
 
@@ -641,6 +647,7 @@ export default function NandaTentHouse() {
     setNewOrderAddress('');
     setNewOrderEmail('');
     setNewOrderDate('');
+    setNewOrderEventType('');
     setNewOrderItems([]);
     setNewOrderAdvance('');
     setNewOrderNotes('');
@@ -659,6 +666,101 @@ export default function NandaTentHouse() {
       router.push('/login');
     } catch (error) {
       console.error('Error logging out:', error);
+    }
+  };
+
+  const shareOrderAsImage = async () => {
+    if (!selectedOrder) {
+      Utils.showToast('No order selected', 'error');
+      return;
+    }
+    
+    try {
+      Utils.showLoading(true);
+      
+      // Find the order details modal content
+      const element = document.getElementById('order-details-content');
+      if (!element) {
+        Utils.showToast('Order details not found', 'error');
+        Utils.showLoading(false);
+        return;
+      }
+      
+      // Capture the order details as an image
+      const canvas = await html2canvas(element, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        onclone: (doc) => {
+          // 🔥 FORCE SAFE COLORS
+          const all = doc.querySelectorAll('*');
+
+          all.forEach((el: any) => {
+            const style = window.getComputedStyle(el);
+
+            // Replace unsupported colors
+            if (style.color.includes('lab') || style.backgroundColor.includes('lab')) {
+              el.style.color = '#000000';
+              el.style.backgroundColor = '#ffffff';
+            }
+          });
+        }
+      });
+      
+      // Convert canvas to blob
+      canvas.toBlob(async (blob) => {
+        Utils.showLoading(false);
+        
+        if (blob) {
+          // Create a file from the blob
+          const file = new File([blob], `order-${selectedOrder.customerName}-${new Date().toISOString().split('T')[0]}.png`, { type: 'image/png' });
+          
+          // Check if Web Share API is supported
+          if (navigator.share && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                title: `Order Details - ${selectedOrder.customerName}`,
+                text: `Order for ${selectedOrder.customerName} on ${new Date(selectedOrder.eventDate).toLocaleDateString('en-IN')}\nTotal: ₹${selectedOrder.totalAmount?.toLocaleString()}`,
+                files: [file]
+              });
+              Utils.showToast('Order shared successfully!', 'success');
+            } catch (error) {
+              console.log('Share cancelled or failed:', error);
+              // Fallback to download
+              downloadOrderImage(canvas);
+            }
+          } else {
+            // Fallback to download if share API not supported
+            downloadOrderImage(canvas);
+          }
+        } else {
+          Utils.showToast('Failed to create image', 'error');
+        }
+      }, 'image/png');
+      
+    } catch (error) {
+      console.error('Error sharing order:', error);
+      Utils.showToast('Failed to share order: ' + (error as Error).message, 'error');
+      Utils.showLoading(false);
+    }
+  };
+
+  const downloadOrderImage = (canvas: HTMLCanvasElement) => {
+    try {
+      const link = document.createElement('a');
+      const fileName = `order-${selectedOrder?.customerName || 'unknown'}-${new Date().toISOString().split('T')[0]}.png`;
+      link.download = fileName;
+      link.href = canvas.toDataURL('image/png');
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      Utils.showToast('Order image downloaded!', 'success');
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      Utils.showToast('Failed to download image: ' + (error as Error).message, 'error');
     }
   };
 
@@ -928,19 +1030,19 @@ export default function NandaTentHouse() {
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
               <p className="text-gray-600 text-sm font-medium mb-2">Total Items</p>
-              <p className="text-3xl font-bold text-green-600">{totalItems}</p>
+              <p className="text-2xl font-bold text-green-600">{totalItems}</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
               <p className="text-gray-600 text-sm font-medium mb-2">Total Invest</p>
-              <p className="text-3xl font-bold text-green-600">₹{totalInvestment.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-green-600">₹{totalInvestment.toLocaleString()}</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
               <p className="text-gray-600 text-sm font-medium mb-2">Total Orders</p>
-              <p className="text-3xl font-bold text-green-600">{orders.length}</p>
+              <p className="text-2xl font-bold text-green-600">{orders.length}</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-center justify-center">
               <p className="text-gray-600 text-sm font-medium mb-2">Total Revenue</p>
-              <p className="text-3xl font-bold text-green-600">₹{totalRevenue.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-green-600">₹{totalRevenue.toLocaleString()}</p>
             </div>
           </div>
           <div className="mt-8 mb-4">
@@ -1061,28 +1163,30 @@ export default function NandaTentHouse() {
               {items.map((item, index, array) => (
                 <div
                   key={index}
-                  className={`flex justify-between items-center px-4 py-3 ${
+                  className={`px-4 py-4 ${
                     index !== array.length - 1 ? 'border-b border-gray-200' : ''
                   } ${isEditingItems ? 'cursor-pointer hover:bg-green-50' : ''}`}
                   onClick={() => isEditingItems && openEditItem(item)}
                 >
-                  <div>
-                    <p className="text-gray-700 font-medium">{item.name}</p>
-                    <p className="text-gray-500 text-sm">Cost: ₹{item.price} | Stock: {item.available} {item.unit}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-green-600 font-semibold">₹{item.price * item.available}</span>
-                    {isEditingItems && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEditItem(item);
-                        }}
-                        className="p-1 hover:bg-green-100 rounded"
-                      >
-                        <Edit size={16} className="text-green-600" />
-                      </button>
-                    )}
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <p className="text-gray-800 font-bold text-lg mb-2">{item.name}</p>
+                      <p className="text-gray-600 text-sm mb-1">Cost: ₹{item.costPrice || 0} | Stock: {item.available}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-600 font-bold text-lg">₹{item.price}</span>
+                      {isEditingItems && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditItem(item);
+                          }}
+                          className="p-1 hover:bg-green-100 rounded"
+                        >
+                          <Edit size={16} className="text-green-600" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1152,6 +1256,23 @@ export default function NandaTentHouse() {
                   onChange={(e) => setNewOrderDate(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
+              </div>
+
+              {/* Event Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+                <select
+                  value={newOrderEventType}
+                  onChange={(e) => setNewOrderEventType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  title="Select event type"
+                >
+                  <option value="">Select Event Type</option>
+                  <option value="Marriage (ବିବାହ)">Marriage (ବିବାହ)</option>
+                  <option value="Ekadoshaha (ଏକାଦଶାହ)">Ekadoshaha (ଏକାଦଶାହ)</option>
+                  <option value="Meeting (ସଭା)">Meeting (ସଭା)</option>
+                  <option value="Ekoisia (ଏକୋଇଶା)">Ekoisia (ଏକୋଇଶା)</option>
+                </select>
               </div>
 
               {/* Items Selection */}
@@ -1365,17 +1486,29 @@ export default function NandaTentHouse() {
           <div className="bg-white rounded-lg shadow-lg py-6 px-0 w-11/12 max-w-md max-h-[90vh] overflow-y-auto">
             <div className="bg-green-600 text-white px-6 py-4 rounded-t-lg -m-6 mb-4 relative flex justify-center items-center">
               <h2 className="text-xl font-bold text-center">Order Details</h2>
-              <button
-                onClick={closeOrderDetails}
-                className="absolute right-4 top-4 text-white hover:text-gray-200 p-2 hover:bg-green-700 rounded-full transition"
-              >
-                ✕
-              </button>
+              <div className="absolute right-4 top-4 flex items-center space-x-2">
+                <button
+                  onClick={shareOrderAsImage}
+                  className="text-white hover:text-gray-200 p-2 hover:bg-green-700 rounded-full transition"
+                  title="Share Order as Image"
+                >
+                  <Share2 size={18} />
+                </button>
+                <button
+                  onClick={closeOrderDetails}
+                  className="text-white hover:text-gray-200 p-2 hover:bg-green-700 rounded-full transition"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-1">
+            <div id="order-details-content" className="space-y-1">
               {/* Order Header */}
               <div className="bg-green-50 p-4 rounded-lg">
+                {selectedOrder.eventType && (
+                  <p className="text-lg font-bold mb-2 text-center" style={{ color: '#7c3aed' }}>{selectedOrder.eventType}</p>
+                )}
                 <h3 className="text-xl font-bold text-gray-800 mb-2">{selectedOrder.customerName}</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -1645,3 +1778,5 @@ export default function NandaTentHouse() {
     </div>
   );
 }
+
+
