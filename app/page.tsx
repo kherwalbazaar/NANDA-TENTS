@@ -296,6 +296,35 @@ export default function NandaTentHouse() {
     }
   }, [user, loading, router]);
 
+  // Handle hardware back button for mobile
+  useEffect(() => {
+    const handleBackButton = (event: PopStateEvent) => {
+      // Navigate back to previous page or close modals
+      if (showAddItemPage || showEditItemPage) {
+        // Close any open item modals and go to items tab
+        setShowAddItemPage(false);
+        setShowEditItemPage(false);
+        setActiveTab('items');
+      } else if (addOrderModalOpen || selectedOrder) {
+        // Close order modals
+        setAddOrderModalOpen(false);
+        setSelectedOrder(null);
+      } else if (showPasswordModal) {
+        // Close password modal
+        setShowPasswordModal(false);
+      } else {
+        // Default back navigation - go to home
+        setActiveTab('home');
+      }
+    };
+
+    window.addEventListener('popstate', handleBackButton);
+    
+    return () => {
+      window.removeEventListener('popstate', handleBackButton);
+    };
+  }, [showAddItemPage, showEditItemPage, addOrderModalOpen, selectedOrder, showPasswordModal]);
+
   useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
     if (isStandalone) return;
@@ -382,8 +411,8 @@ export default function NandaTentHouse() {
   };
 
   const closeItemModal = () => {
-    console.log('Closing add item page...');
     setShowAddItemPage(false);
+    setActiveTab('items');
     setNewItemName('');
     setNewItemCategory('Tents');
     setNewItemPrice('');
@@ -405,7 +434,8 @@ export default function NandaTentHouse() {
     setTimeout(() => {
       setEditingItemId(null);
       setEditItemData(null);
-    }, 100);
+    }, 300);
+    setActiveTab('items');
   };
 
   const saveEditedItem = async () => {
